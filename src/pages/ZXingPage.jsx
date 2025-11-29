@@ -9,10 +9,16 @@ const ZXingPage = () => {
     const [selectedDevice, setSelectedDevice] = useState('');
     const videoRef = useRef(null);
     const readerRef = useRef(null);
+    const lastScanTimeRef = useRef(0);
+
 
     // Settings
     const [tryHarder, setTryHarder] = useState(true);
     const [resolution, setResolution] = useState('HD');
+    const [pureBarcodeDetect, setPureBarcodeDetect] = useState(false);
+    const [inverted, setInverted] = useState(false);
+    const [scanDelay, setScanDelay] = useState(500);
+    const [focusMode, setFocusMode] = useState('continuous');
 
     const addLog = (msg) => {
         const time = new Date().toLocaleTimeString();
@@ -54,6 +60,12 @@ const ZXingPage = () => {
             if (tryHarder) {
                 hints.set(DecodeHintType.TRY_HARDER, true);
             }
+            if (pureBarcodeDetect) {
+                hints.set(DecodeHintType.PURE_BARCODE, true);
+            }
+            if (inverted) {
+                hints.set(DecodeHintType.ALSO_INVERTED, true);
+            }
 
             const reader = new BrowserMultiFormatReader(hints);
             readerRef.current = reader;
@@ -74,6 +86,11 @@ const ZXingPage = () => {
                 constraints.video.height = { min: 720, ideal: 1080 };
             }
 
+            // Add focus mode
+            if (focusMode !== 'default') {
+                constraints.video.advanced = [{ focusMode: focusMode }];
+            }
+
             addLog(`Starting with device: ${selectedDevice.substring(0, 20)}...`);
             addLog(`Try Harder: ${tryHarder}, Resolution: ${resolution}`);
 
@@ -82,6 +99,12 @@ const ZXingPage = () => {
                 videoRef.current,
                 (result, error) => {
                     if (result) {
+                        const now = Date.now();
+                        if (now - lastScanTimeRef.current < scanDelay) {
+                            return; // Ignore scans that are too frequent
+                        }
+                        lastScanTimeRef.current = now;
+
                         setLastResult(result.getText());
                         addLog(`DETECTED: ${result.getText()}`);
                         if (navigator.vibrate) navigator.vibrate(200);
@@ -156,6 +179,55 @@ const ZXingPage = () => {
                         />
                         Try Harder (Plus lent mais plus précis)
                     </label>
+                </div>
+
+                {/* Pure Barcode */}
+                <div>
+                    <label>
+                        <input
+                            type="checkbox"
+                            checked={pureBarcodeDetect}
+                            onChange={(e) => setPureBarcodeDetect(e.target.checked)}
+                            disabled={isScanning}
+                        />
+                        Pure Barcode (Sans texte autour)
+                    </label>
+                </div>
+
+                {/* Inverted */}
+                <div>
+                    <label>
+                        <input
+                            type="checkbox"
+                            checked={inverted}
+                            onChange={(e) => setInverted(e.target.checked)}
+                            disabled={isScanning}
+                        />
+                        Inverser les couleurs (Barcode blanc sur fond noir)
+                    </label>
+                </div>
+
+                {/* Focus Mode */}
+                <div>
+                    <label>Focus Mode: </label>
+                    <select value={focusMode} onChange={(e) => setFocusMode(e.target.value)} disabled={isScanning}>
+                        <option value="default">Default</option>
+                        <option value="continuous">Continuous (Recommandé)</option>
+                        <option value="single-shot">Single Shot</option>
+                        <option value="manual">Manual</option>
+                    </select>
+                </div>
+
+                {/* Scan Delay */}
+                <div>
+                    <label>Délai entre scans: {scanDelay}ms</label>
+                    <input
+                        type="range" min="100" max="2000" step="100" value={scanDelay}
+                        onChange={(e) => setScanDelay(parseInt(e.target.value))}
+                        disabled={isScanning}
+                        style={{ width: '100%' }}
+                    />
+                    <small style={{ display: 'block', color: '#888' }}>Évite les détections multiples du même code</small>
                 </div>
 
                 {!isScanning ? (
