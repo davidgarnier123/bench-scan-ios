@@ -23,7 +23,8 @@ const ZXingPage = () => {
         // Get available cameras
         const getDevices = async () => {
             try {
-                const videoDevices = await BrowserMultiFormatReader.listVideoInputDevices();
+                const allDevices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = allDevices.filter(device => device.kind === 'videoinput');
                 setDevices(videoDevices);
                 // Select back camera by default
                 const backCamera = videoDevices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
