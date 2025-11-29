@@ -84,12 +84,6 @@ const Html5QrcodePage = () => {
                 { facingMode: "environment" },
                 {
                     ...config,
-                    videoConstraints: resConstraints // Pass constraints here as per library docs for some versions, or mixed in. 
-                                                   // Actually, for start(), the first arg is camera, second is config. 
-                                                   // Video constraints usually go into the config object if not using deviceId.
-                                                   // BUT, html5-qrcode is tricky. 
-                                                   // Let's pass the constraints in the config object's videoConstraints property, 
-                                                   // and keep the first arg simple.
                     videoConstraints: resConstraints
                 },
                 (decodedText, decodedResult) => {
