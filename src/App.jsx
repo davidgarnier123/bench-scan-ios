@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import QuaggaPage from './pages/QuaggaPage';
+import Html5QrcodePage from './pages/Html5QrcodePage';
 
 function App() {
   return (
