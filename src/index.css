@@ -1,12 +1,9 @@
 :root {
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --danger: #ef4444;
   --success: #22c55e;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
@@ -22,31 +19,51 @@ body {
   font-family: var(--font-sans);
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  line-height: 1.5;
-  overflow-x: hidden;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  /* Prevent scrolling on main app container */
 }
 
-button {
-  cursor: pointer;
-  border: none;
-  outline: none;
-  font-family: inherit;
+#root {
+  height: 100%;
+  width: 100%;
 }
 
-input,
-select {
-  font-family: inherit;
-  outline: none;
-}
-
-.container {
-  max-width: 600px;
-  /* Mobile focused */
-  margin: 0 auto;
-  padding: 1rem;
-  min-height: 100vh;
+.page-container {
+  height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
+  background-color: var(--bg-primary);
+}
+
+/* Scanner Specifics */
+.scanner-viewport {
+  flex: 1;
+  position: relative;
+  background-color: #000;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scanner-viewport video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* Settings Specifics */
+.settings-container {
+  height: 100%;
+  overflow-y: auto;
+  padding: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .btn {
@@ -56,9 +73,10 @@ select {
   padding: 0.75rem 1.5rem;
   border-radius: 0.75rem;
   font-weight: 600;
-  transition: all 0.2s;
   background-color: var(--bg-secondary);
   color: var(--text-primary);
+  border: none;
+  cursor: pointer;
 }
 
 .btn-primary {
@@ -66,53 +84,22 @@ select {
   color: white;
 }
 
-.btn-primary:active {
-  background-color: var(--accent-hover);
-  transform: scale(0.98);
-}
-
 .card {
   background-color: var(--bg-secondary);
   border-radius: 1rem;
   padding: 1.5rem;
-  border: 1px solid var(--bg-tertiary);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.input-group {
   margin-bottom: 1rem;
 }
 
-.input-label {
-  display: block;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
+/* Utility */
+.z-top {
+  z-index: 50;
 }
 
-.input-field {
-  width: 100%;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  background-color: var(--bg-primary);
-  border: 1px solid var(--bg-tertiary);
-  color: var(--text-primary);
-  font-size: 1rem;
+.z-mid {
+  z-index: 30;
 }
 
-.input-field:focus {
-  border-color: var(--accent);
-}
-
-/* Scanner Video Fixes */
-#html5-qrcode-reader video,
-.quagga-scanner video,
-video {
-  object-fit: cover !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-#html5-qrcode-reader {
-  border: none !important;
+.z-base {
+  z-index: 10;
 }
