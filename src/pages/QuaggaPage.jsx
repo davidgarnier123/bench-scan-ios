@@ -12,14 +12,13 @@ const QuaggaPage = () => {
     const [patchSize, setPatchSize] = useState('medium');
     const [halfSample, setHalfSample] = useState(true);
     const [frequency, setFrequency] = useState(10);
+    const [zoom, setZoom] = useState(1);
+    const [capabilities, setCapabilities] = useState(null);
 
     const addLog = (msg) => {
         const time = new Date().toLocaleTimeString();
         setLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 50));
     };
-
-    const [zoom, setZoom] = useState(1);
-    const [capabilities, setCapabilities] = useState(null);
 
     const applyZoom = (zoomValue) => {
         const track = Quagga.CameraAccess.getActiveTrack();
@@ -195,22 +194,57 @@ const QuaggaPage = () => {
                         />
                         Half Sample (Faster, less accurate)
                     </label>
-
-                    {lastResult && (
-                        <div style={{ background: '#22c55e', color: 'white', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
-                            <strong>FOUND:</strong> {lastResult}
-                        </div>
-                    )}
-
-                    <div className="scanner-box" ref={scannerRef} style={{ position: 'relative', overflow: 'hidden' }}>
-                        {/* Quagga injects video and canvas here */}
-                    </div>
-
-                    <div className="log-container">
-                        {logs.map((log, i) => <div key={i}>{log}</div>)}
-                    </div>
                 </div>
-                );
+
+                {/* Frequency */}
+                <div>
+                    <label>Frequency: {frequency} scans/s</label>
+                    <input
+                        type="range" min="1" max="30" value={frequency}
+                        onChange={(e) => setFrequency(e.target.value)}
+                        disabled={isScanning}
+                        style={{ width: '100%' }}
+                    />
+                </div>
+
+                {/* Zoom Slider */}
+                {isScanning && capabilities && capabilities.zoom && (
+                    <div>
+                        <label>Zoom: {zoom}x</label>
+                        <input
+                            type="range"
+                            min={capabilities.zoom.min}
+                            max={capabilities.zoom.max}
+                            step="0.1"
+                            value={zoom}
+                            onChange={(e) => applyZoom(parseFloat(e.target.value))}
+                            style={{ width: '100%' }}
+                        />
+                    </div>
+                )}
+
+                {!isScanning ? (
+                    <button onClick={startScanner} style={{ width: '100%', marginTop: '1rem' }}>Start Quagga</button>
+                ) : (
+                    <button onClick={stopScanner} style={{ backgroundColor: '#dc2626', width: '100%', marginTop: '1rem' }}>Stop Quagga</button>
+                )}
+            </div>
+
+            {lastResult && (
+                <div style={{ background: '#22c55e', color: 'white', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+                    <strong>FOUND:</strong> {lastResult}
+                </div>
+            )}
+
+            <div className="scanner-box" ref={scannerRef} style={{ position: 'relative', overflow: 'hidden' }}>
+                {/* Quagga injects video and canvas here */}
+            </div>
+
+            <div className="log-container">
+                {logs.map((log, i) => <div key={i}>{log}</div>)}
+            </div>
+        </div>
+    );
 };
 
-                export default QuaggaPage;
+export default QuaggaPage;
