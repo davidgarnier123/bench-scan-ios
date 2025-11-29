@@ -61,7 +61,7 @@ const QuaggaScanner = ({ onScan, onError }) => {
 
     return (
         <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}>
-            <div ref={scannerRef} style={{ width: '100%', height: '100%', '& > video': { width: '100%', height: '100%', objectFit: 'cover' } }}></div>
+            <div ref={scannerRef} className="quagga-scanner" style={{ width: '100%', height: '100%' }}></div>
         </div>
     );
 };

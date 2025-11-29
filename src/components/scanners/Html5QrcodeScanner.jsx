@@ -49,37 +49,8 @@ const Html5QrcodeScanner = ({ onScan, onError }) => {
 
             const config = {
                 fps: 10,
-                qrbox: { width: 250, height: 150 },
-                aspectRatio: 1.0,
-                formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128],
-                videoConstraints: videoConstraints // Pass constraints here
             };
-
-            try {
-                // First argument must be simple for validation, real constraints go in config
-                await html5QrCode.start(
-                    { facingMode: "environment" },
-                    config,
-                    (decodedText, decodedResult) => {
-                        if (onScan) onScan(decodedText, 'html5-qrcode');
-                    },
-                    (errorMessage) => {
-                        // parse error, ignore it.
-                        if (onError) onError(errorMessage);
-                    }
-                );
-            } catch (err) {
-                console.error("Error starting html5-qrcode", err);
-                if (onError) onError(err);
-            }
-        };
-
-        startScanner();
-
-        return () => {
-            // Cleanup handled in the other useEffect, but good to double check
-        };
-    }, [settings.resolution, onScan, onError]);
+        }, [settings.resolution, onScan, onError]);
 
     return (
         <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}>

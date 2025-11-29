@@ -33,13 +33,15 @@ button {
   font-family: inherit;
 }
 
-input, select {
+input,
+select {
   font-family: inherit;
   outline: none;
 }
 
 .container {
-  max-width: 600px; /* Mobile focused */
+  max-width: 600px;
+  /* Mobile focused */
   margin: 0 auto;
   padding: 1rem;
   min-height: 100vh;
@@ -100,4 +102,17 @@ input, select {
 
 .input-field:focus {
   border-color: var(--accent);
+}
+
+/* Scanner Video Fixes */
+#html5-qrcode-reader video,
+.quagga-scanner video,
+video {
+  object-fit: cover !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+#html5-qrcode-reader {
+  border: none !important;
 }
