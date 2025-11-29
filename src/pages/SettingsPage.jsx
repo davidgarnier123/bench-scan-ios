@@ -6,6 +6,8 @@ import { Link } from 'react-router-dom';
 const SettingsPage = () => {
     const { settings, updateSetting } = useSettings();
 
+    if (!settings) return <div className="container" style={{ color: 'white' }}>Chargement des paramètres...</div>;
+
     return (
         <div className="container">
             <header style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>

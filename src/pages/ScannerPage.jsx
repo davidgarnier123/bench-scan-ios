@@ -119,6 +119,17 @@ const ScannerPage = () => {
                             </div>
                         </div>
                     )}
+
+                    {/* Manual Start / Error Recovery */}
+                    <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="btn"
+                            style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'white', fontSize: '0.875rem', padding: '0.5rem 1rem' }}
+                        >
+                            Redémarrer la Caméra
+                        </button>
+                    </div>
                 </div>
             </div>
 
