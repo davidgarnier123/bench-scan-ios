@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import QuaggaPage from './pages/QuaggaPage';
 import Html5QrcodePage from './pages/Html5QrcodePage';
+import ZXingPage from './pages/ZXingPage';
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
           <Link to="/" style={{ marginRight: '1rem', color: '#646cff', textDecoration: 'none' }}>Home</Link>
           <Link to="/html5-qrcode" style={{ marginRight: '1rem', color: '#646cff', textDecoration: 'none' }}>html5-qrcode</Link>
           <Link to="/quagga" style={{ marginRight: '1rem', color: '#646cff', textDecoration: 'none' }}>Quagga</Link>
+          <Link to="/zxing" style={{ marginRight: '1rem', color: '#646cff', textDecoration: 'none' }}>ZXing</Link>
         </nav>
 
         <Routes>
@@ -25,12 +27,15 @@ function App() {
                 <Link to="/quagga">
                   <button style={{ width: '100%' }}>Test Quagga</button>
                 </Link>
-                <button disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>ZXing (Coming Soon)</button>
+                <Link to="/zxing">
+                  <button style={{ width: '100%' }}>Test ZXing</button>
+                </Link>
               </div>
             </div>
           } />
           <Route path="/html5-qrcode" element={<Html5QrcodePage />} />
           <Route path="/quagga" element={<QuaggaPage />} />
+          <Route path="/zxing" element={<ZXingPage />} />
         </Routes>
       </div>
     </Router>
