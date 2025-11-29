@@ -49,8 +49,48 @@ const Html5QrcodeScanner = ({ onScan, onError }) => {
 
             const config = {
                 fps: 10,
+                qrbox: { width: 250, height: 150 },
+                aspectRatio: 1.0,
+                formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128],
+                // videoConstraints is NOT passed here in the config object for the start method
+                // It is passed as the first argument to start()
             };
-        }, [settings.resolution, onScan, onError]);
+
+            const startWithConstraints = async (constraints) => {
+                try {
+                    await html5QrCode.start(
+                        constraints,
+                        config,
+                        (decodedText, decodedResult) => {
+                            if (onScan) onScan(decodedText, 'html5-qrcode');
+                        },
+                        (errorMessage) => {
+                            // parse error, ignore it.
+                            if (onError) onError(errorMessage);
+                        }
+                    );
+                } catch (err) {
+                    console.warn("Failed to start with constraints", constraints, err);
+                    // Fallback to basic environment facing mode if specific resolution fails
+                    if (constraints.width || constraints.height) {
+                        console.log("Retrying with default constraints...");
+                        await startWithConstraints({ facingMode: "environment" });
+                    } else {
+                        console.error("Fatal error starting html5-qrcode", err);
+                        if (onError) onError(err);
+                    }
+                }
+            };
+
+            await startWithConstraints(videoConstraints);
+        };
+
+        startScanner();
+
+        return () => {
+            // Cleanup handled in the other useEffect, but good to double check
+        };
+    }, [settings.resolution, onScan, onError]);
 
     return (
         <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}>
