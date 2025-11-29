@@ -18,6 +18,21 @@ const QuaggaPage = () => {
         setLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 50));
     };
 
+    const [zoom, setZoom] = useState(1);
+    const [capabilities, setCapabilities] = useState(null);
+
+    const applyZoom = (zoomValue) => {
+        const track = Quagga.CameraAccess.getActiveTrack();
+        if (track && typeof track.getCapabilities === 'function') {
+            const caps = track.getCapabilities();
+            if (caps.zoom) {
+                track.applyConstraints({ advanced: [{ zoom: zoomValue }] })
+                    .catch(err => console.warn("Zoom failed", err));
+            }
+        }
+        setZoom(zoomValue);
+    };
+
     const startScanner = async () => {
         if (isScanning) return;
         setIsScanning(true);
@@ -50,7 +65,11 @@ const QuaggaPage = () => {
             numOfWorkers: navigator.hardwareConcurrency || 4,
             frequency: frequency,
             decoder: {
-                readers: ["code_128_reader"], // Strictly Code 128
+                readers: [{
+                    format: "code_128_reader",
+                    config: {}
+                }],
+                multiple: false
             },
             locate: true,
         };
@@ -64,17 +83,25 @@ const QuaggaPage = () => {
                 }
                 addLog("Quagga initialized. Starting...");
                 Quagga.start();
+
+                // Check for zoom capabilities
+                const track = Quagga.CameraAccess.getActiveTrack();
+                if (track && typeof track.getCapabilities === 'function') {
+                    const caps = track.getCapabilities();
+                    if (caps.zoom) {
+                        setCapabilities(caps);
+                        addLog(`Zoom supported: ${caps.zoom.min} - ${caps.zoom.max}`);
+                    }
+                }
+
                 addLog("Quagga started.");
             });
 
             Quagga.onDetected((data) => {
                 if (data && data.codeResult && data.codeResult.code) {
-                    // Basic validation to reduce noise
-                    if (data.codeResult.code.length > 3) {
-                        setLastResult(data.codeResult.code);
-                        addLog(`DETECTED: ${data.codeResult.code}`);
-                        if (navigator.vibrate) navigator.vibrate(200);
-                    }
+                    setLastResult(data.codeResult.code);
+                    addLog(`DETECTED: ${data.codeResult.code}`);
+                    if (navigator.vibrate) navigator.vibrate(200);
                 }
             });
 
@@ -168,41 +195,22 @@ const QuaggaPage = () => {
                         />
                         Half Sample (Faster, less accurate)
                     </label>
+
+                    {lastResult && (
+                        <div style={{ background: '#22c55e', color: 'white', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+                            <strong>FOUND:</strong> {lastResult}
+                        </div>
+                    )}
+
+                    <div className="scanner-box" ref={scannerRef} style={{ position: 'relative', overflow: 'hidden' }}>
+                        {/* Quagga injects video and canvas here */}
+                    </div>
+
+                    <div className="log-container">
+                        {logs.map((log, i) => <div key={i}>{log}</div>)}
+                    </div>
                 </div>
-
-                {/* Frequency */}
-                <div>
-                    <label>Frequency: {frequency} scans/s</label>
-                    <input
-                        type="range" min="1" max="30" value={frequency}
-                        onChange={(e) => setFrequency(e.target.value)}
-                        disabled={isScanning}
-                        style={{ width: '100%' }}
-                    />
-                </div>
-
-                {!isScanning ? (
-                    <button onClick={startScanner} style={{ width: '100%', marginTop: '1rem' }}>Start Quagga</button>
-                ) : (
-                    <button onClick={stopScanner} style={{ backgroundColor: '#dc2626', width: '100%', marginTop: '1rem' }}>Stop Quagga</button>
-                )}
-            </div>
-
-            {lastResult && (
-                <div style={{ background: '#22c55e', color: 'white', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
-                    <strong>FOUND:</strong> {lastResult}
-                </div>
-            )}
-
-            <div className="scanner-box" ref={scannerRef} style={{ position: 'relative', overflow: 'hidden' }}>
-                {/* Quagga injects video and canvas here */}
-            </div>
-
-            <div className="log-container">
-                {logs.map((log, i) => <div key={i}>{log}</div>)}
-            </div>
-        </div>
-    );
+                );
 };
 
-export default QuaggaPage;
+                export default QuaggaPage;
