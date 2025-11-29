@@ -6,30 +6,28 @@ const Html5QrcodeScanner = ({ onScan, onError }) => {
     const { settings } = useSettings();
     const scannerRef = useRef(null);
     const scannerId = "html5-qrcode-reader";
+    const isMounted = useRef(true);
 
     useEffect(() => {
-        // Cleanup function to stop scanner when component unmounts
-        return () => {
-            if (scannerRef.current) {
-                scannerRef.current.stop().catch(err => console.error("Failed to stop scanner", err));
-            }
-        };
-    }, []);
+        isMounted.current = true;
+        let html5QrCode;
 
-    useEffect(() => {
         const startScanner = async () => {
-            // Cleanup existing instance if any
+            // Ensure any previous instance is stopped and cleared
             if (scannerRef.current) {
                 try {
                     if (scannerRef.current.isScanning) {
                         await scannerRef.current.stop();
                     }
+                    scannerRef.current.clear();
                 } catch (err) {
-                    console.warn("Stop failed", err);
+                    console.warn("Cleanup failed", err);
                 }
+                scannerRef.current = null;
             }
 
-            const html5QrCode = new Html5Qrcode(scannerId);
+            // Create new instance
+            html5QrCode = new Html5Qrcode(scannerId);
             scannerRef.current = html5QrCode;
 
             const videoConstraints = {
@@ -52,26 +50,33 @@ const Html5QrcodeScanner = ({ onScan, onError }) => {
                 qrbox: { width: 250, height: 150 },
                 aspectRatio: 1.0,
                 formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128],
-                // videoConstraints is NOT passed here in the config object for the start method
-                // It is passed as the first argument to start()
             };
 
             const startWithConstraints = async (constraints) => {
+                if (!isMounted.current) return;
                 try {
                     await html5QrCode.start(
                         constraints,
                         config,
                         (decodedText, decodedResult) => {
-                            if (onScan) onScan(decodedText, 'html5-qrcode');
+                            if (isMounted.current && onScan) onScan(decodedText, 'html5-qrcode');
                         },
                         (errorMessage) => {
-                            // parse error, ignore it.
-                            if (onError) onError(errorMessage);
+                            // ignore parse errors
                         }
                     );
                 } catch (err) {
-                    console.warn("Failed to start with constraints", constraints, err);
-                    // Fallback to basic environment facing mode if specific resolution fails
+                    if (!isMounted.current) return;
+                    console.warn("Start failed with constraints", constraints, err);
+
+                    // Check for specific "already under transition" error
+                    if (err?.message?.includes("already under transition")) {
+                        console.log("Scanner busy, retrying in 500ms...");
+                        setTimeout(() => startWithConstraints(constraints), 500);
+                        return;
+                    }
+
+                    // Fallback logic
                     if (constraints.width || constraints.height) {
                         console.log("Retrying with default constraints...");
                         await startWithConstraints({ facingMode: "environment" });
@@ -82,13 +87,23 @@ const Html5QrcodeScanner = ({ onScan, onError }) => {
                 }
             };
 
-            await startWithConstraints(videoConstraints);
+            // Small delay to ensure DOM is ready and previous cleanup is done
+            setTimeout(() => {
+                if (isMounted.current) {
+                    startWithConstraints(videoConstraints);
+                }
+            }, 100);
         };
 
         startScanner();
 
         return () => {
-            // Cleanup handled in the other useEffect, but good to double check
+            isMounted.current = false;
+            if (scannerRef.current) {
+                scannerRef.current.stop().catch(err => console.warn("Unmount stop failed", err));
+                // We don't clear() here to avoid removing the DOM element if React re-uses it immediately,
+                // but we stop the stream.
+            }
         };
     }, [settings.resolution, onScan, onError]);
 
