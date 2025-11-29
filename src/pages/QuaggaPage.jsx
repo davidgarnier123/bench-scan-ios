@@ -10,8 +10,9 @@ const QuaggaPage = () => {
     // Settings
     const [resolution, setResolution] = useState('HD');
     const [patchSize, setPatchSize] = useState('medium');
-    const [halfSample, setHalfSample] = useState(true);
-    const [frequency, setFrequency] = useState(10);
+    const [halfSample, setHalfSample] = useState(false); // Désactivé par défaut pour meilleure précision
+    const [frequency, setFrequency] = useState(5); // Réduit pour laisser plus de temps au décodeur
+    const [focusMode, setFocusMode] = useState('continuous');
     const [zoom, setZoom] = useState(1);
     const [capabilities, setCapabilities] = useState(null);
 
@@ -49,6 +50,11 @@ const QuaggaPage = () => {
         } else if (resolution === 'FHD') {
             constraints.width = { min: 1080, ideal: 1920 };
             constraints.height = { min: 720, ideal: 1080 };
+        }
+
+        // Ajouter les contraintes de focus
+        if (focusMode !== 'default') {
+            constraints.advanced = [{ focusMode: focusMode }];
         }
 
         const config = {
@@ -194,6 +200,18 @@ const QuaggaPage = () => {
                         />
                         Half Sample (Faster, less accurate)
                     </label>
+                </div>
+
+                {/* Focus Mode */}
+                <div>
+                    <label>Focus Mode: </label>
+                    <select value={focusMode} onChange={(e) => setFocusMode(e.target.value)} disabled={isScanning}>
+                        <option value="default">Default</option>
+                        <option value="continuous">Continuous (Recommandé)</option>
+                        <option value="single-shot">Single Shot</option>
+                        <option value="manual">Manual</option>
+                    </select>
+                    <small style={{ display: 'block', color: '#888' }}>Continuous = autofocus permanent</small>
                 </div>
 
                 {/* Frequency */}
