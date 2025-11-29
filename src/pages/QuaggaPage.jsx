@@ -6,12 +6,14 @@ const QuaggaPage = () => {
     const [isScanning, setIsScanning] = useState(false);
     const [lastResult, setLastResult] = useState(null);
     const scannerRef = useRef(null);
+    const [devices, setDevices] = useState([]);
+    const [selectedDevice, setSelectedDevice] = useState('');
 
-    // Settings
-    const [resolution, setResolution] = useState('HD');
-    const [patchSize, setPatchSize] = useState('medium');
-    const [halfSample, setHalfSample] = useState(false); // Désactivé par défaut pour meilleure précision
-    const [frequency, setFrequency] = useState(5); // Réduit pour laisser plus de temps au décodeur
+    // Settings optimisées pour étiquettes blanches Code 128
+    const [resolution, setResolution] = useState('FHD');
+    const [patchSize, setPatchSize] = useState('large');
+    const [halfSample, setHalfSample] = useState(false);
+    const [frequency, setFrequency] = useState(3);
     const [focusMode, setFocusMode] = useState('continuous');
     const [zoom, setZoom] = useState(1);
     const [capabilities, setCapabilities] = useState(null);
@@ -20,6 +22,33 @@ const QuaggaPage = () => {
         const time = new Date().toLocaleTimeString();
         setLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 50));
     };
+
+    // Énumérer les caméras disponibles
+    useEffect(() => {
+        const getDevices = async () => {
+            try {
+                const allDevices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = allDevices.filter(device => device.kind === 'videoinput');
+                setDevices(videoDevices);
+
+                const backCamera = videoDevices.find(d =>
+                    d.label.toLowerCase().includes('back') ||
+                    d.label.toLowerCase().includes('arrière') ||
+                    d.label.toLowerCase().includes('environment')
+                );
+                if (backCamera) {
+                    setSelectedDevice(backCamera.deviceId);
+                    addLog(`Caméra arrière sélectionnée: ${backCamera.label}`);
+                } else if (videoDevices.length > 0) {
+                    setSelectedDevice(videoDevices[0].deviceId);
+                    addLog(`Caméra par défaut: ${videoDevices[0].label}`);
+                }
+            } catch (err) {
+                addLog(`Erreur énumération: ${err}`);
+            }
+        };
+        getDevices();
+    }, []);
 
     const applyZoom = (zoomValue) => {
         const track = Quagga.CameraAccess.getActiveTrack();
@@ -40,9 +69,14 @@ const QuaggaPage = () => {
         addLog("Initializing Quagga...");
 
         let constraints = {
-            facingMode: "environment",
             aspectRatio: { min: 1, max: 2 }
         };
+
+        if (selectedDevice) {
+            constraints.deviceId = selectedDevice;
+        } else {
+            constraints.facingMode = "environment";
+        }
 
         if (resolution === 'HD') {
             constraints.width = { min: 720, ideal: 1280 };
@@ -52,7 +86,6 @@ const QuaggaPage = () => {
             constraints.height = { min: 720, ideal: 1080 };
         }
 
-        // Ajouter les contraintes de focus
         if (focusMode !== 'default') {
             constraints.advanced = [{ focusMode: focusMode }];
         }
@@ -89,7 +122,6 @@ const QuaggaPage = () => {
                 addLog("Quagga initialized. Starting...");
                 Quagga.start();
 
-                // Check for zoom capabilities
                 const track = Quagga.CameraAccess.getActiveTrack();
                 if (track && typeof track.getCapabilities === 'function') {
                     const caps = track.getCapabilities();
@@ -166,7 +198,17 @@ const QuaggaPage = () => {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem', textAlign: 'left', maxWidth: '400px', margin: '0 auto 1rem auto' }}>
 
-                {/* Resolution */}
+                <div>
+                    <label>Caméra: </label>
+                    <select value={selectedDevice} onChange={(e) => setSelectedDevice(e.target.value)} disabled={isScanning}>
+                        {devices.map(device => (
+                            <option key={device.deviceId} value={device.deviceId}>
+                                {device.label || `Caméra ${device.deviceId.substring(0, 10)}`}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
                 <div>
                     <label>Resolution: </label>
                     <select value={resolution} onChange={(e) => setResolution(e.target.value)} disabled={isScanning}>
@@ -176,20 +218,17 @@ const QuaggaPage = () => {
                     </select>
                 </div>
 
-                {/* Patch Size */}
                 <div>
-                    <label>Patch Size (Detection Grid): </label>
+                    <label>Patch Size: </label>
                     <select value={patchSize} onChange={(e) => setPatchSize(e.target.value)} disabled={isScanning}>
                         <option value="x-small">X-Small</option>
                         <option value="small">Small</option>
-                        <option value="medium">Medium (Default)</option>
-                        <option value="large">Large</option>
+                        <option value="medium">Medium</option>
+                        <option value="large">Large (Recommandé)</option>
                         <option value="x-large">X-Large</option>
                     </select>
-                    <small style={{ display: 'block', color: '#888' }}>Larger = better for big codes, worse for small ones.</small>
                 </div>
 
-                {/* Half Sample */}
                 <div>
                     <label>
                         <input
@@ -198,11 +237,10 @@ const QuaggaPage = () => {
                             onChange={(e) => setHalfSample(e.target.checked)}
                             disabled={isScanning}
                         />
-                        Half Sample (Faster, less accurate)
+                        Half Sample
                     </label>
                 </div>
 
-                {/* Focus Mode */}
                 <div>
                     <label>Focus Mode: </label>
                     <select value={focusMode} onChange={(e) => setFocusMode(e.target.value)} disabled={isScanning}>
@@ -211,10 +249,8 @@ const QuaggaPage = () => {
                         <option value="single-shot">Single Shot</option>
                         <option value="manual">Manual</option>
                     </select>
-                    <small style={{ display: 'block', color: '#888' }}>Continuous = autofocus permanent</small>
                 </div>
 
-                {/* Frequency */}
                 <div>
                     <label>Frequency: {frequency} scans/s</label>
                     <input
@@ -225,7 +261,6 @@ const QuaggaPage = () => {
                     />
                 </div>
 
-                {/* Zoom Slider */}
                 {isScanning && capabilities && capabilities.zoom && (
                     <div>
                         <label>Zoom: {zoom}x</label>

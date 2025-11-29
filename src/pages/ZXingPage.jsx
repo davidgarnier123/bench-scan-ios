@@ -12,12 +12,12 @@ const ZXingPage = () => {
     const lastScanTimeRef = useRef(0);
 
 
-    // Settings
+    // Settings optimisées pour étiquettes blanches Code 128
     const [tryHarder, setTryHarder] = useState(true);
-    const [resolution, setResolution] = useState('HD');
+    const [resolution, setResolution] = useState('FHD'); // FHD par défaut pour étiquettes
     const [pureBarcodeDetect, setPureBarcodeDetect] = useState(false);
     const [inverted, setInverted] = useState(false);
-    const [scanDelay, setScanDelay] = useState(500);
+    const [scanDelay, setScanDelay] = useState(300); // Délai réduit
     const [focusMode, setFocusMode] = useState('continuous');
 
     const addLog = (msg) => {
@@ -32,8 +32,14 @@ const ZXingPage = () => {
                 const allDevices = await navigator.mediaDevices.enumerateDevices();
                 const videoDevices = allDevices.filter(device => device.kind === 'videoinput');
                 setDevices(videoDevices);
-                // Select back camera by default
-                const backCamera = videoDevices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
+
+                // Sélectionner la caméra arrière par défaut
+                const backCamera = videoDevices.find(d =>
+                    d.label.toLowerCase().includes('back') ||
+                    d.label.toLowerCase().includes('arrière') ||
+                    d.label.toLowerCase().includes('environment') ||
+                    d.label.toLowerCase().includes('rear')
+                );
                 if (backCamera) {
                     setSelectedDevice(backCamera.deviceId);
                 } else if (videoDevices.length > 0) {
