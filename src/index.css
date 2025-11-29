@@ -1,105 +1,75 @@
 :root {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --accent: #3b82f6;
-  --success: #22c55e;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  -webkit-tap-highlight-color: transparent;
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
 }
 
 body {
-  font-family: var(--font-sans);
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  /* Prevent scrolling on main app container */
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
 }
 
 #root {
-  height: 100%;
-  width: 100%;
-}
-
-.page-container {
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  background-color: var(--bg-primary);
-}
-
-/* Scanner Specifics */
-.scanner-viewport {
-  flex: 1;
-  position: relative;
-  background-color: #000;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.scanner-viewport video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-}
-
-/* Settings Specifics */
-.settings-container {
-  height: 100%;
-  overflow-y: auto;
-  padding: 1rem;
-  max-width: 600px;
+  max-width: 1280px;
   margin: 0 auto;
-  width: 100%;
+  padding: 1rem;
+  text-align: center;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.75rem;
-  font-weight: 600;
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  border: none;
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
   cursor: pointer;
+  transition: border-color 0.25s;
 }
 
-.btn-primary {
-  background-color: var(--accent);
-  color: white;
+button:hover {
+  border-color: #646cff;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+select {
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  border-radius: 8px;
+  margin: 0 0.5em;
 }
 
 .card {
-  background-color: var(--bg-secondary);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
+  padding: 2em;
 }
 
-/* Utility */
-.z-top {
-  z-index: 50;
+.log-container {
+  text-align: left;
+  background: #111;
+  padding: 1em;
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 0.8em;
+  margin-top: 1em;
+  white-space: pre-wrap;
 }
 
-.z-mid {
-  z-index: 30;
-}
-
-.z-base {
-  z-index: 10;
+.scanner-box {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  background: #000;
+  min-height: 300px;
+  position: relative;
 }
