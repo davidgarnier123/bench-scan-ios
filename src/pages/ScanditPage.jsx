@@ -22,7 +22,6 @@ const ScanditPage = () => {
     const cleanupScanner = async () => {
         try {
             if (viewRef.current) {
-                // Check if dispose exists before calling it
                 if (typeof viewRef.current.dispose === 'function') {
                     viewRef.current.dispose();
                 }
@@ -89,7 +88,6 @@ const ScanditPage = () => {
                 throw new Error("Container element not found");
             }
 
-            // Create view using static create method and pass container element
             const sparkScanView = await SDCBarcode.SparkScanView.create(
                 containerRef.current,
                 context,
@@ -99,8 +97,17 @@ const ScanditPage = () => {
             viewRef.current = sparkScanView;
 
             addLog("Starting scanner...");
-            // No need to append manually, create() does it
-            // No need to call prepareScanning(), create() handles it
+            await sparkScan.setEnabled(true);
+            addLog("✓ SparkScan enabled");
+
+            // Check camera permissions
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                stream.getTracks().forEach(track => track.stop());
+                addLog("✓ Camera permission granted");
+            } catch (e) {
+                addLog("⚠️ Camera permission check failed: " + e.message);
+            }
 
             addLog("✓ SparkScan ready!");
 
