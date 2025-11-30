@@ -23,7 +23,6 @@ const ScanditPage = () => {
     const cleanupScanner = async () => {
         try {
             if (viewRef.current) {
-                // FIX: detachFromContainer is not a function, use connectToElement(null)
                 viewRef.current.connectToElement(null);
                 viewRef.current = null;
             }
@@ -80,7 +79,6 @@ const ScanditPage = () => {
             // 4. Create Context
             addLog("Loading Scandit engine...");
 
-            // FIX: Revert to forLicenseKey as configure() might be missing or causing issues
             const context = await SDCCore.DataCaptureContext.forLicenseKey(LICENSE_KEY, {
                 libraryLocation: "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-barcode@8/build/engine/",
                 moduleLoaders: [SDCBarcode.barcodeCaptureLoader()]
@@ -104,15 +102,12 @@ const ScanditPage = () => {
 
             const barcodeCapture = await SDCBarcode.BarcodeCapture.forContext(context, settings);
 
-            // FIX: Disable sound, keep vibration (simplified)
-            const feedback = SDCBarcode.BarcodeCaptureFeedback.default;
-            feedback.success.sound = null;
-            // feedback.success.vibration = new SDCCore.Vibration(); // Removed to avoid potential error
-            barcodeCapture.feedback = feedback;
+            // FIX: Removed custom feedback configuration to avoid errors.
+            // Default behavior (sound + vibration) will be used.
 
             barcodeCaptureRef.current = barcodeCapture;
 
-            // 7. Add Overlay
+            // 7. Add Overlay & Controls
             const overlay = await SDCBarcode.BarcodeCaptureOverlay.withBarcodeCaptureForView(
                 barcodeCapture,
                 view
@@ -121,6 +116,9 @@ const ScanditPage = () => {
                 SDCCore.RectangularViewfinderStyle.Square,
                 SDCCore.RectangularViewfinderLineStyle.Light
             );
+
+            // Add Camera Switch Control (User request)
+            view.addControl(new SDCCore.CameraSwitchControl());
 
             // 8. Add Listener (Continuous Mode)
             barcodeCapture.addListener({
