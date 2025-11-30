@@ -6,17 +6,10 @@ const ScanditPage = () => {
     const [logs, setLogs] = useState([]);
     const [isScanning, setIsScanning] = useState(false);
     const [lastResult, setLastResult] = useState(null);
-    const [isLicenseValid, setIsLicenseValid] = useState(false);
-
-    // Settings State
-    const [enabledSymbologies, setEnabledSymbologies] = useState(['CODE_128']);
-    const [scanAreaHeight, setScanAreaHeight] = useState(0.3);
-    const [scanAreaWidth, setScanAreaWidth] = useState(0.8);
-    const [cameraResolution, setCameraResolution] = useState('HD');
+    const [isInitialized, setIsInitialized] = useState(false);
 
     const contextRef = useRef(null);
-    const cameraRef = useRef(null);
-    const barcodeTrackingRef = useRef(null);
+    const sparkScanRef = useRef(null);
     const viewRef = useRef(null);
     const containerRef = useRef(null);
 
@@ -28,40 +21,14 @@ const ScanditPage = () => {
         setLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 50));
     };
 
-    const initializeLicense = async (key) => {
-        try {
-            addLog("Initializing Scandit license...");
-
-            // Configure the library location for WebAssembly files
-            await SDCCore.configure({
-                libraryLocation: "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-barcode@latest/build/engine/",
-                moduleLoaders: [SDCBarcode.barcodeCaptureLoader()]
-            });
-
-            // The license will be used when creating DataCaptureContext
-            // Store it for later use
-            contextRef.licenseKey = key;
-
-            setIsLicenseValid(true);
-            addLog("✓ License configured successfully");
-        } catch (err) {
-            addLog(`✗ License error: ${err.message}`);
-            setIsLicenseValid(false);
-        }
-    };
-
     const cleanupScanner = async () => {
         try {
-            if (barcodeTrackingRef.current) {
-                await barcodeTrackingRef.current.setEnabled(false);
-                barcodeTrackingRef.current = null;
+            if (sparkScanRef.current) {
+                await sparkScanRef.current.setEnabled(false);
+                sparkScanRef.current = null;
             }
-            if (cameraRef.current) {
-                await cameraRef.current.switchToDesiredState(SDCCore.FrameSourceState.Off);
-                cameraRef.current = null;
-            }
-            if (viewRef.current && containerRef.current) {
-                viewRef.current.detachFromElement();
+            if (viewRef.current) {
+                viewRef.current.dispose();
                 viewRef.current = null;
             }
             if (contextRef.current) {
@@ -74,115 +41,97 @@ const ScanditPage = () => {
     };
 
     const startScanner = async () => {
-        if (isScanning || !isLicenseValid) return;
+        if (isScanning || !LICENSE_KEY) return;
         setIsScanning(true);
         setLastResult(null);
 
         try {
             await cleanupScanner();
 
-            addLog("Creating DataCaptureContext...");
-            // Create context with license key
+            addLog("Creating DataCaptureContext with license...");
+            // Create context with license key - this is the correct way
             const context = await SDCCore.DataCaptureContext.forLicenseKey(LICENSE_KEY);
             contextRef.current = context;
+            addLog("✓ Context created successfully");
 
             addLog("Configuring camera...");
             const camera = SDCCore.Camera.default;
-            cameraRef.current = camera;
-
-            // Configure camera resolution
-            const cameraSettings = SDCBarcode.BarcodeCapture.recommendedCameraSettings;
-            if (cameraResolution === 'HD') {
-                cameraSettings.preferredResolution = SDCCore.VideoResolution.HD;
-            } else if (cameraResolution === 'FHD') {
-                cameraSettings.preferredResolution = SDCCore.VideoResolution.FullHD;
-            } else if (cameraResolution === 'UHD') {
-                cameraSettings.preferredResolution = SDCCore.VideoResolution.UHD4K;
-            }
-
+            const cameraSettings = SDCBarcode.SparkScan.recommendedCameraSettings;
             await camera.applySettings(cameraSettings);
             await context.setFrameSource(camera);
+            addLog("✓ Camera configured");
 
-            addLog("Setting up barcode capture...");
-            const settings = new SDCBarcode.BarcodeCaptureSettings();
+            addLog("Setting up SparkScan...");
+            const settings = new SDCBarcode.SparkScanSettings();
 
-            // Enable selected symbologies
-            const symbologyMap = {
-                'CODE_128': SDCBarcode.Symbology.Code128,
-                'QR': SDCBarcode.Symbology.QR,
-                'EAN13': SDCBarcode.Symbology.EAN13UPCA,
-                'EAN8': SDCBarcode.Symbology.EAN8,
-                'CODE39': SDCBarcode.Symbology.Code39,
-                'CODE93': SDCBarcode.Symbology.Code93,
-                'DATAMATRIX': SDCBarcode.Symbology.DataMatrix,
-            };
+            // Enable CODE_128 by default
+            settings.enableSymbologies([
+                SDCBarcode.Symbology.Code128,
+                SDCBarcode.Symbology.EAN13UPCA,
+                SDCBarcode.Symbology.EAN8,
+                SDCBarcode.Symbology.QR
+            ]);
 
-            enabledSymbologies.forEach(sym => {
-                if (symbologyMap[sym]) {
-                    settings.enableSymbology(symbologyMap[sym], true);
-                }
-            });
+            // Configure CODE_128 settings
+            const code128Settings = settings.settingsForSymbology(SDCBarcode.Symbology.Code128);
+            code128Settings.activeSymbolCounts = [7, 8, 9, 10, 11, 12, 13, 14, 15];
 
-            // Configure scan area
-            settings.locationSelection = SDCCore.RectangularLocationSelection.withSize(
-                new SDCCore.SizeWithUnit(
-                    new SDCCore.NumberWithUnit(scanAreaWidth, SDCCore.MeasureUnit.Fraction),
-                    new SDCCore.NumberWithUnit(scanAreaHeight, SDCCore.MeasureUnit.Fraction)
-                )
-            );
+            // Create SparkScan mode
+            const sparkScan = await SDCBarcode.SparkScan.forSettings(settings);
+            sparkScanRef.current = sparkScan;
 
-            const barcodeCapture = await SDCBarcode.BarcodeCapture.forContext(context, settings);
-            barcodeTrackingRef.current = barcodeCapture;
-
-            // Set up barcode capture listener
-            barcodeCapture.addListener({
-                didScan: async (barcodeCapture, session) => {
+            // Add listener for scan events
+            sparkScan.addListener({
+                didScan: async (sparkScan, session) => {
                     const barcode = session.newlyRecognizedBarcodes[0];
                     if (barcode) {
                         const result = barcode.data;
                         setLastResult(result);
                         addLog(`✓ SCANNED: ${result} [${barcode.symbology}]`);
                         if (navigator.vibrate) navigator.vibrate(200);
-
-                        // Pause briefly to show result
-                        await barcodeCapture.setEnabled(false);
-                        setTimeout(async () => {
-                            if (barcodeTrackingRef.current) {
-                                await barcodeCapture.setEnabled(true);
-                            }
-                        }, 1000);
                     }
                 }
             });
 
-            // Create and attach view
-            addLog("Creating DataCaptureView...");
-            const view = await SDCCore.DataCaptureView.forContext(context);
-            viewRef.current = view;
+            addLog("Creating SparkScan view...");
+            // Create SparkScan view with pre-built UI
+            const sparkScanView = await SDCBarcode.SparkScanView.forContext(
+                context,
+                sparkScan,
+                {
+                    previewSizeControlVisible: true,
+                    torchButtonVisible: true,
+                    scanningBehaviorButtonVisible: true,
+                    handModeButtonVisible: true,
+                    barcodeCountButtonVisible: false,
+                    fastFindButtonVisible: false,
+                    targetModeButtonVisible: true,
+                    soundEnabled: true,
+                    hapticEnabled: true,
+                    hardwareTriggerEnabled: true,
+                    visualFeedbackEnabled: true
+                }
+            );
+
+            viewRef.current = sparkScanView;
 
             if (containerRef.current) {
-                await view.connectToElement(containerRef.current);
-
-                // Add overlay
-                const overlay = await SDCBarcode.BarcodeCaptureOverlay.withBarcodeCaptureForView(
-                    barcodeCapture,
-                    view
-                );
-                overlay.viewfinder = new SDCCore.RectangularViewfinder(
-                    SDCCore.RectangularViewfinderStyle.Square,
-                    SDCCore.RectangularViewfinderLineStyle.Light
-                );
+                // Clear container
+                containerRef.current.innerHTML = '';
+                // Attach view to container
+                containerRef.current.appendChild(sparkScanView.htmlElement);
             }
 
             addLog("Starting camera...");
-            await barcodeCapture.setEnabled(true);
             await camera.switchToDesiredState(SDCCore.FrameSourceState.On);
+            await sparkScan.setEnabled(true);
 
-            addLog("✓ Scanner ready!");
+            addLog("✓ SparkScan ready!");
+            setIsInitialized(true);
 
         } catch (err) {
             addLog(`✗ START ERROR: ${err.message}`);
-            console.error(err);
+            console.error("Full error:", err);
             setIsScanning(false);
             await cleanupScanner();
         }
@@ -192,16 +141,18 @@ const ScanditPage = () => {
         addLog("Stopping scanner...");
         await cleanupScanner();
         setIsScanning(false);
+        setIsInitialized(false);
+        if (containerRef.current) {
+            containerRef.current.innerHTML = '';
+        }
         addLog("Scanner stopped.");
     };
 
     useEffect(() => {
-        // Initialiser automatiquement avec la clé d'environnement si disponible
         if (LICENSE_KEY) {
-            addLog("License key loaded from environment");
-            initializeLicense(LICENSE_KEY);
+            addLog("✓ License key loaded from environment");
         } else {
-            addLog("⚠ No license key found in environment variables");
+            addLog("✗ No license key found in environment variables");
         }
 
         return () => {
@@ -211,7 +162,7 @@ const ScanditPage = () => {
 
     return (
         <div className="card">
-            <h2>Test Scandit SDK</h2>
+            <h2>Test Scandit SDK (SparkScan)</h2>
 
             {!LICENSE_KEY && (
                 <div style={{
@@ -232,111 +183,37 @@ const ScanditPage = () => {
                 </div>
             )}
 
-            {LICENSE_KEY && !isLicenseValid && (
-                <div style={{
-                    background: '#fef3c7',
-                    border: '1px solid #fbbf24',
-                    color: '#92400e',
-                    padding: '1rem',
-                    borderRadius: '8px',
-                    marginBottom: '1rem',
-                    textAlign: 'left'
-                }}>
-                    <strong>⚠ License Initialization</strong>
-                    <p style={{ margin: '0.5rem 0 0 0' }}>
-                        Initialisation de la licence en cours...
-                    </p>
-                </div>
-            )}
-
-            {isLicenseValid && (
+            {LICENSE_KEY && (
                 <>
                     <div style={{
+                        background: '#dbeafe',
+                        border: '1px solid #3b82f6',
+                        color: '#1e40af',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        marginBottom: '1rem',
+                        textAlign: 'left'
+                    }}>
+                        <strong>ℹ️ SparkScan</strong>
+                        <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem' }}>
+                            Interface pré-construite de Scandit avec UI optimisée pour le scanning de codes-barres.
+                            Inclut : feedback visuel/audio/haptique, contrôles caméra, mode ciblage, et plus.
+                        </p>
+                    </div>
+
+                    <div style={{
                         display: 'flex',
-                        flexDirection: 'column',
                         gap: '1rem',
                         marginBottom: '1rem',
-                        textAlign: 'left',
-                        maxWidth: '400px',
-                        margin: '0 auto 1rem auto'
+                        justifyContent: 'center'
                     }}>
-                        {/* Camera Resolution */}
-                        <div>
-                            <label>Resolution: </label>
-                            <select
-                                value={cameraResolution}
-                                onChange={(e) => setCameraResolution(e.target.value)}
-                                disabled={isScanning}
-                            >
-                                <option value="SD">SD (480p)</option>
-                                <option value="HD">HD (720p)</option>
-                                <option value="FHD">Full HD (1080p)</option>
-                                <option value="UHD">4K UHD</option>
-                            </select>
-                        </div>
-
-                        {/* Symbologies */}
-                        <div>
-                            <label>Barcode Types:</label>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
-                                {['CODE_128', 'QR', 'EAN13', 'EAN8', 'CODE39', 'CODE93', 'DATAMATRIX'].map(sym => (
-                                    <label key={sym} style={{ display: 'flex', alignItems: 'center', fontSize: '0.9rem' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={enabledSymbologies.includes(sym)}
-                                            onChange={(e) => {
-                                                if (e.target.checked) {
-                                                    setEnabledSymbologies([...enabledSymbologies, sym]);
-                                                } else {
-                                                    setEnabledSymbologies(enabledSymbologies.filter(s => s !== sym));
-                                                }
-                                            }}
-                                            disabled={isScanning}
-                                            style={{ marginRight: '0.25rem' }}
-                                        />
-                                        {sym}
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Scan Area Width */}
-                        <div>
-                            <label>Scan Area Width: {Math.round(scanAreaWidth * 100)}%</label>
-                            <input
-                                type="range"
-                                min="0.3"
-                                max="1"
-                                step="0.1"
-                                value={scanAreaWidth}
-                                onChange={(e) => setScanAreaWidth(parseFloat(e.target.value))}
-                                disabled={isScanning}
-                                style={{ width: '100%' }}
-                            />
-                        </div>
-
-                        {/* Scan Area Height */}
-                        <div>
-                            <label>Scan Area Height: {Math.round(scanAreaHeight * 100)}%</label>
-                            <input
-                                type="range"
-                                min="0.1"
-                                max="0.5"
-                                step="0.05"
-                                value={scanAreaHeight}
-                                onChange={(e) => setScanAreaHeight(parseFloat(e.target.value))}
-                                disabled={isScanning}
-                                style={{ width: '100%' }}
-                            />
-                        </div>
-
                         {!isScanning ? (
-                            <button onClick={startScanner} style={{ width: '100%', marginTop: '1rem' }}>
-                                Start Camera
+                            <button onClick={startScanner} style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}>
+                                🚀 Start SparkScan
                             </button>
                         ) : (
-                            <button onClick={stopScanner} style={{ backgroundColor: '#dc2626', width: '100%', marginTop: '1rem' }}>
-                                Stop Camera
+                            <button onClick={stopScanner} style={{ backgroundColor: '#dc2626', padding: '1rem 2rem', fontSize: '1.1rem' }}>
+                                ⛔ Stop Scanner
                             </button>
                         )}
                     </div>
@@ -349,9 +226,10 @@ const ScanditPage = () => {
                             borderRadius: '8px',
                             marginBottom: '1rem',
                             fontSize: '1.2rem',
-                            fontWeight: 'bold'
+                            fontWeight: 'bold',
+                            textAlign: 'center'
                         }}>
-                            ✓ FOUND: {lastResult}
+                            ✓ SCANNED: {lastResult}
                         </div>
                     )}
 
@@ -360,8 +238,8 @@ const ScanditPage = () => {
                         className="scanner-box"
                         style={{
                             width: '100%',
-                            maxWidth: '600px',
-                            height: '400px',
+                            maxWidth: '800px',
+                            minHeight: '500px',
                             margin: '0 auto',
                             backgroundColor: '#000',
                             borderRadius: '8px',
@@ -376,18 +254,28 @@ const ScanditPage = () => {
                                 left: '50%',
                                 transform: 'translate(-50%, -50%)',
                                 color: '#666',
-                                textAlign: 'center'
+                                textAlign: 'center',
+                                padding: '2rem'
                             }}>
-                                Camera preview will appear here
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📱</div>
+                                <div>Cliquez sur "Start SparkScan" pour commencer</div>
                             </div>
                         )}
                     </div>
                 </>
             )}
 
-            <div className="log-container" style={{ marginTop: '1rem' }}>
+            <div className="log-container" style={{ marginTop: '1rem', maxHeight: '300px', overflow: 'auto' }}>
                 <h3>Logs:</h3>
-                {logs.map((log, i) => <div key={i}>{log}</div>)}
+                {logs.map((log, i) => (
+                    <div key={i} style={{
+                        fontSize: '0.85rem',
+                        padding: '0.25rem',
+                        borderBottom: '1px solid #333'
+                    }}>
+                        {log}
+                    </div>
+                ))}
             </div>
         </div>
     );
