@@ -23,7 +23,8 @@ const ScanditPage = () => {
     const cleanupScanner = async () => {
         try {
             if (viewRef.current) {
-                viewRef.current.detachFromContainer();
+                // FIX: detachFromContainer is not a function, use connectToElement(null)
+                viewRef.current.connectToElement(null);
                 viewRef.current = null;
             }
             if (barcodeCaptureRef.current) {
@@ -39,14 +40,14 @@ const ScanditPage = () => {
                 contextRef.current = null;
             }
         } catch (err) {
-            console.error(err);
+            console.error("Cleanup error:", err);
         }
     };
 
     const startScanner = async () => {
         if (isScanning || !LICENSE_KEY) return;
         setIsScanning(true);
-        setScannedCodes([]); // Clear previous codes on start
+        setScannedCodes([]);
 
         try {
             await cleanupScanner();
@@ -56,7 +57,7 @@ const ScanditPage = () => {
             const view = new SDCCore.DataCaptureView();
             viewRef.current = view;
 
-            // 2. Setup Camera (Best Guess)
+            // 2. Setup Camera
             addLog("Selecting camera...");
             const camera = SDCCore.Camera.pickBestGuess();
             if (!camera) throw new Error("No camera found");
@@ -78,14 +79,13 @@ const ScanditPage = () => {
 
             // 4. Create Context
             addLog("Loading Scandit engine...");
-            // FIX: Use version 8 to match installed package
-            await SDCCore.configure({
-                licenseKey: LICENSE_KEY,
+
+            // FIX: Revert to forLicenseKey as configure() might be missing or causing issues
+            const context = await SDCCore.DataCaptureContext.forLicenseKey(LICENSE_KEY, {
                 libraryLocation: "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-barcode@8/build/engine/",
                 moduleLoaders: [SDCBarcode.barcodeCaptureLoader()]
             });
 
-            const context = await SDCCore.DataCaptureContext.create();
             contextRef.current = context;
             addLog("✓ Engine loaded");
 
@@ -104,10 +104,10 @@ const ScanditPage = () => {
 
             const barcodeCapture = await SDCBarcode.BarcodeCapture.forContext(context, settings);
 
-            // FIX: Disable sound, keep vibration
+            // FIX: Disable sound, keep vibration (simplified)
             const feedback = SDCBarcode.BarcodeCaptureFeedback.default;
             feedback.success.sound = null;
-            feedback.success.vibration = new SDCCore.Vibration();
+            // feedback.success.vibration = new SDCCore.Vibration(); // Removed to avoid potential error
             barcodeCapture.feedback = feedback;
 
             barcodeCaptureRef.current = barcodeCapture;
@@ -130,7 +130,6 @@ const ScanditPage = () => {
                         const data = barcode.data;
                         const symbology = barcode.symbology;
 
-                        // Update state with new code
                         setScannedCodes(prev => [{ data, symbology, time: new Date().toLocaleTimeString() }, ...prev]);
                         addLog(`✓ SCANNED: ${data}`);
                     }
@@ -142,17 +141,15 @@ const ScanditPage = () => {
             addLog("✓ Scanner running (Continuous)");
 
         } catch (err) {
-            // Filter out "Error 28" from logs if it persists but works, otherwise show it
-            if (!err.message.includes("Error 28")) {
+            // Filter out "Error 28" from logs if it persists but works
+            if (!err.message || !err.message.includes("Error 28")) {
                 addLog(`✗ ERROR: ${err.message}`);
             } else {
                 console.warn("Ignored Error 28:", err);
             }
             console.error("Full error:", err);
 
-            // Don't stop scanning on non-fatal errors if possible, but usually init fails.
-            // If it's the resource error, it might be fatal.
-            if (err.message.includes("Error 28")) {
+            if (err.message && err.message.includes("Error 28")) {
                 addLog("⚠️ Resource error (checking version match...)");
             } else {
                 setIsScanning(false);
@@ -281,7 +278,7 @@ const ScanditPage = () => {
                 textAlign: 'left',
                 background: '#f5f5f5',
                 padding: '0.5rem',
-                color: 'black', // FIX: Ensure text is visible
+                color: 'black',
                 border: '1px solid #ddd',
                 borderRadius: '4px'
             }}>
