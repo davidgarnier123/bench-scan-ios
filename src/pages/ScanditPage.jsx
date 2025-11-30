@@ -12,7 +12,6 @@ const ScanditPage = () => {
     const viewRef = useRef(null);
     const containerRef = useRef(null);
 
-    // Récupération de la clé depuis la variable d'environnement
     const LICENSE_KEY = import.meta.env.VITE_SCANDIT_LICENSE_KEY;
 
     const addLog = (msg) => {
@@ -56,8 +55,6 @@ const ScanditPage = () => {
 
             addLog("Setting up SparkScan...");
             const settings = new SDCBarcode.SparkScanSettings();
-
-            // Enable symbologies
             settings.enableSymbologies([
                 SDCBarcode.Symbology.Code128,
                 SDCBarcode.Symbology.EAN13UPCA,
@@ -65,11 +62,9 @@ const ScanditPage = () => {
                 SDCBarcode.Symbology.QR
             ]);
 
-            // Create SparkScan
             const sparkScan = await SDCBarcode.SparkScan.forSettings(settings);
             sparkScanRef.current = sparkScan;
 
-            // Add scan listener
             sparkScan.addListener({
                 didScan: (sparkScan, session) => {
                     const barcode = session.newlyRecognizedBarcodes[0];
@@ -87,11 +82,11 @@ const ScanditPage = () => {
             viewSettings.scanningBehaviorButtonVisible = true;
             viewSettings.targetModeButtonVisible = true;
 
-            const sparkScanView = new SDCBarcode.SparkScanView({
-                context: context,
-                sparkScan: sparkScan,
-                settings: viewSettings
-            });
+            const sparkScanView = await SDCBarcode.SparkScanView.create(
+                context,
+                sparkScan,
+                viewSettings
+            );
             viewRef.current = sparkScanView;
 
             if (containerRef.current) {
