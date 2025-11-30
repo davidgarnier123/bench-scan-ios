@@ -48,6 +48,11 @@ const ScanditPage = () => {
         try {
             await cleanupScanner();
 
+            addLog("Configuring Scandit library...");
+            // Configure library location FIRST - this is required
+            SDCCore.LibrarySettings.libraryLocation = "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-barcode@6/build/engine/";
+            addLog("✓ Library configured");
+
             addLog("Creating DataCaptureContext with license...");
             // Create context with license key - this is the correct way
             const context = await SDCCore.DataCaptureContext.forLicenseKey(LICENSE_KEY);
