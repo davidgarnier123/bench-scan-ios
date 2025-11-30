@@ -87,7 +87,11 @@ const ScanditPage = () => {
             viewSettings.scanningBehaviorButtonVisible = true;
             viewSettings.targetModeButtonVisible = true;
 
-            const sparkScanView = SDCBarcode.SparkScanView.forContext(context, sparkScan, viewSettings);
+            const sparkScanView = new SDCBarcode.SparkScanView({
+                context: context,
+                sparkScan: sparkScan,
+                settings: viewSettings
+            });
             viewRef.current = sparkScanView;
 
             if (containerRef.current) {
