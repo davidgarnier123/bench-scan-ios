@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@ericblade/quagga2": "^1.10.2",
+    "@scandit/web-datacapture-barcode": "^8.0.0",
+    "@scandit/web-datacapture-core": "^8.0.0",
     "@undecaf/zbar-wasm": "^0.11.0",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",

@@ -4,6 +4,7 @@ import QuaggaPage from './pages/QuaggaPage';
 import Html5QrcodePage from './pages/Html5QrcodePage';
 import ZXingPage from './pages/ZXingPage';
 import ZBarPage from './pages/ZBarPage';
+import ScanditPage from './pages/ScanditPage';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Link to="/quagga" style={{ marginRight: '1rem', color: '#646cff', textDecoration: 'none' }}>Quagga</Link>
           <Link to="/zxing" style={{ marginRight: '1rem', color: '#646cff', textDecoration: 'none' }}>ZXing</Link>
           <Link to="/zbar" style={{ marginRight: '1rem', color: '#646cff', textDecoration: 'none' }}>ZBar</Link>
+          <Link to="/scandit" style={{ marginRight: '1rem', color: '#646cff', textDecoration: 'none' }}>Scandit</Link>
         </nav>
 
         <Routes>
@@ -35,6 +37,9 @@ function App() {
                 <Link to="/zbar">
                   <button style={{ width: '100%' }}>Test ZBar</button>
                 </Link>
+                <Link to="/scandit">
+                  <button style={{ width: '100%' }}>Test Scandit</button>
+                </Link>
               </div>
             </div>
           } />
@@ -42,6 +47,7 @@ function App() {
           <Route path="/quagga" element={<QuaggaPage />} />
           <Route path="/zxing" element={<ZXingPage />} />
           <Route path="/zbar" element={<ZBarPage />} />
+          <Route path="/scandit" element={<ScanditPage />} />
         </Routes>
       </div>
     </Router>
