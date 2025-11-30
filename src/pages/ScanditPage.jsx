@@ -31,11 +31,17 @@ const ScanditPage = () => {
     const initializeLicense = async (key) => {
         try {
             addLog("Initializing Scandit license...");
+
+            // Configure the library location for WebAssembly files
             await SDCCore.configure({
-                licenseKey: key,
                 libraryLocation: "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-barcode@latest/build/engine/",
                 moduleLoaders: [SDCBarcode.barcodeCaptureLoader()]
             });
+
+            // The license will be used when creating DataCaptureContext
+            // Store it for later use
+            contextRef.licenseKey = key;
+
             setIsLicenseValid(true);
             addLog("✓ License configured successfully");
         } catch (err) {
@@ -76,7 +82,8 @@ const ScanditPage = () => {
             await cleanupScanner();
 
             addLog("Creating DataCaptureContext...");
-            const context = await SDCCore.DataCaptureContext.create();
+            // Create context with license key
+            const context = await SDCCore.DataCaptureContext.forLicenseKey(LICENSE_KEY);
             contextRef.current = context;
 
             addLog("Configuring camera...");
