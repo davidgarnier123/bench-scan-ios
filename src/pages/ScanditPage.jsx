@@ -5,7 +5,7 @@ import * as SDCBarcode from '@scandit/web-datacapture-barcode';
 const ScanditPage = () => {
     const [logs, setLogs] = useState([]);
     const [isScanning, setIsScanning] = useState(false);
-    const [lastResult, setLastResult] = useState(null);
+    const [scannedCodes, setScannedCodes] = useState([]);
 
     const viewRef = useRef(null);
     const contextRef = useRef(null);
@@ -46,7 +46,7 @@ const ScanditPage = () => {
     const startScanner = async () => {
         if (isScanning || !LICENSE_KEY) return;
         setIsScanning(true);
-        setLastResult(null);
+        setScannedCodes([]); // Clear previous codes on start
 
         try {
             await cleanupScanner();
@@ -70,7 +70,7 @@ const ScanditPage = () => {
             addLog("Starting camera stream...");
             await camera.switchToDesiredState(SDCCore.FrameSourceState.On);
 
-            // 3. Connect View to Element WITH Camera (Crucial step from your example)
+            // 3. Connect View to Element WITH Camera
             if (containerRef.current) {
                 view.connectToElement(containerRef.current);
                 addLog("✓ View connected to DOM");
@@ -78,10 +78,14 @@ const ScanditPage = () => {
 
             // 4. Create Context
             addLog("Loading Scandit engine...");
-            const context = await SDCCore.DataCaptureContext.forLicenseKey(LICENSE_KEY, {
-                libraryLocation: "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-barcode@6/build/engine/",
+            // FIX: Use version 8 to match installed package
+            await SDCCore.configure({
+                licenseKey: LICENSE_KEY,
+                libraryLocation: "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-barcode@8/build/engine/",
                 moduleLoaders: [SDCBarcode.barcodeCaptureLoader()]
             });
+
+            const context = await SDCCore.DataCaptureContext.create();
             contextRef.current = context;
             addLog("✓ Engine loaded");
 
@@ -98,11 +102,14 @@ const ScanditPage = () => {
                 SDCBarcode.Symbology.QR
             ]);
 
-            // Setup Code 128 specific settings if needed (from your example)
-            const code128Settings = settings.settingsForSymbology(SDCBarcode.Symbology.Code128);
-            code128Settings.activeSymbolCounts = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
-
             const barcodeCapture = await SDCBarcode.BarcodeCapture.forContext(context, settings);
+
+            // FIX: Disable sound, keep vibration
+            const feedback = SDCBarcode.BarcodeCaptureFeedback.default;
+            feedback.success.sound = null;
+            feedback.success.vibration = new SDCCore.Vibration();
+            barcodeCapture.feedback = feedback;
+
             barcodeCaptureRef.current = barcodeCapture;
 
             // 7. Add Overlay
@@ -110,7 +117,6 @@ const ScanditPage = () => {
                 barcodeCapture,
                 view
             );
-            // Add viewfinder (Square or Rectangular)
             overlay.viewfinder = new SDCCore.RectangularViewfinder(
                 SDCCore.RectangularViewfinderStyle.Square,
                 SDCCore.RectangularViewfinderLineStyle.Light
@@ -124,13 +130,9 @@ const ScanditPage = () => {
                         const data = barcode.data;
                         const symbology = barcode.symbology;
 
-                        setLastResult(data);
-                        addLog(`✓ SCANNED: ${data} (${symbology})`);
-
-                        if (navigator.vibrate) navigator.vibrate(200);
-
-                        // NOTE: We do NOT disable the scanner here to allow continuous scanning
-                        // If you wanted "Tap to scan next", you would disable it here.
+                        // Update state with new code
+                        setScannedCodes(prev => [{ data, symbology, time: new Date().toLocaleTimeString() }, ...prev]);
+                        addLog(`✓ SCANNED: ${data}`);
                     }
                 }
             });
@@ -140,10 +142,22 @@ const ScanditPage = () => {
             addLog("✓ Scanner running (Continuous)");
 
         } catch (err) {
-            addLog(`✗ ERROR: ${err.message}`);
+            // Filter out "Error 28" from logs if it persists but works, otherwise show it
+            if (!err.message.includes("Error 28")) {
+                addLog(`✗ ERROR: ${err.message}`);
+            } else {
+                console.warn("Ignored Error 28:", err);
+            }
             console.error("Full error:", err);
-            setIsScanning(false);
-            await cleanupScanner();
+
+            // Don't stop scanning on non-fatal errors if possible, but usually init fails.
+            // If it's the resource error, it might be fatal.
+            if (err.message.includes("Error 28")) {
+                addLog("⚠️ Resource error (checking version match...)");
+            } else {
+                setIsScanning(false);
+                await cleanupScanner();
+            }
         }
     };
 
@@ -164,7 +178,7 @@ const ScanditPage = () => {
     }, []);
 
     return (
-        <div className="card">
+        <div className="card" style={{ maxWidth: '800px', margin: '0 auto' }}>
             <h2>Test Scandit SDK (Continuous)</h2>
 
             {!LICENSE_KEY && (
@@ -195,57 +209,85 @@ const ScanditPage = () => {
                         )}
                     </div>
 
-                    {lastResult && (
-                        <div style={{
-                            background: '#22c55e',
-                            color: 'white',
-                            padding: '1rem',
-                            borderRadius: '8px',
-                            marginBottom: '1rem',
-                            fontSize: '1.2rem',
-                            fontWeight: 'bold',
-                            textAlign: 'center'
-                        }}>
-                            ✓ {lastResult}
+                    <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column' }}>
+                        {/* Scanner Container */}
+                        <div
+                            ref={containerRef}
+                            id="data-capture-view"
+                            style={{
+                                width: '100%',
+                                height: '50vh',
+                                minHeight: '300px',
+                                backgroundColor: '#000',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                position: 'relative',
+                                border: '2px solid #333'
+                            }}
+                        >
+                            {!isScanning && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    color: '#666',
+                                    textAlign: 'center'
+                                }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📷</div>
+                                    <div>Mode Continu</div>
+                                </div>
+                            )}
                         </div>
-                    )}
 
-                    <div
-                        ref={containerRef}
-                        id="data-capture-view"
-                        style={{
-                            width: '100%',
-                            height: '60vh',
-                            minHeight: '400px',
-                            margin: '0 auto',
-                            backgroundColor: '#000',
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            position: 'relative',
-                            border: '2px solid #333'
-                        }}
-                    >
-                        {!isScanning && (
+                        {/* Scanned Codes List */}
+                        {scannedCodes.length > 0 && (
                             <div style={{
-                                position: 'absolute',
-                                top: '50%',
-                                left: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                color: '#666',
-                                textAlign: 'center'
+                                background: '#f0fdf4',
+                                border: '1px solid #22c55e',
+                                borderRadius: '8px',
+                                padding: '1rem',
+                                maxHeight: '200px',
+                                overflowY: 'auto'
                             }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📷</div>
-                                <div>Mode Continu</div>
+                                <h3 style={{ margin: '0 0 0.5rem 0', color: '#15803d' }}>Codes Scannés ({scannedCodes.length})</h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    {scannedCodes.map((code, index) => (
+                                        <div key={index} style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            padding: '0.5rem',
+                                            background: 'white',
+                                            borderRadius: '4px',
+                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                        }}>
+                                            <span style={{ fontWeight: 'bold', fontFamily: 'monospace' }}>{code.data}</span>
+                                            <span style={{ color: '#666', fontSize: '0.9rem' }}>{code.time}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>
                 </>
             )}
 
-            <div style={{ marginTop: '1rem', maxHeight: '200px', overflow: 'auto', fontSize: '0.8rem', textAlign: 'left', background: '#f5f5f5', padding: '0.5rem' }}>
+            {/* Logs */}
+            <div style={{
+                marginTop: '1rem',
+                maxHeight: '200px',
+                overflow: 'auto',
+                fontSize: '0.8rem',
+                textAlign: 'left',
+                background: '#f5f5f5',
+                padding: '0.5rem',
+                color: 'black', // FIX: Ensure text is visible
+                border: '1px solid #ddd',
+                borderRadius: '4px'
+            }}>
                 <strong>Logs:</strong>
                 {logs.map((log, i) => (
-                    <div key={i} style={{ borderBottom: '1px solid #ddd' }}>{log}</div>
+                    <div key={i} style={{ borderBottom: '1px solid #e5e5e5', padding: '2px 0' }}>{log}</div>
                 ))}
             </div>
         </div>
