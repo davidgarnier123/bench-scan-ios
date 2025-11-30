@@ -22,7 +22,10 @@ const ScanditPage = () => {
     const cleanupScanner = async () => {
         try {
             if (viewRef.current) {
-                viewRef.current.dispose();
+                // Check if dispose exists before calling it
+                if (typeof viewRef.current.dispose === 'function') {
+                    viewRef.current.dispose();
+                }
                 viewRef.current = null;
             }
             if (sparkScanRef.current) {
@@ -82,20 +85,22 @@ const ScanditPage = () => {
             viewSettings.scanningBehaviorButtonVisible = true;
             viewSettings.targetModeButtonVisible = true;
 
+            if (!containerRef.current) {
+                throw new Error("Container element not found");
+            }
+
+            // Create view using static create method and pass container element
             const sparkScanView = await SDCBarcode.SparkScanView.create(
+                containerRef.current,
                 context,
                 sparkScan,
                 viewSettings
             );
             viewRef.current = sparkScanView;
 
-            if (containerRef.current) {
-                containerRef.current.innerHTML = '';
-                containerRef.current.appendChild(sparkScanView.htmlElement);
-            }
-
             addLog("Starting scanner...");
-            await sparkScanView.prepareScanning();
+            // No need to append manually, create() does it
+            // No need to call prepareScanning(), create() handles it
 
             addLog("✓ SparkScan ready!");
 
