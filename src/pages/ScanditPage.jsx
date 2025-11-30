@@ -8,9 +8,10 @@ const ScanditPage = () => {
     const [lastResult, setLastResult] = useState(null);
 
     const contextRef = useRef(null);
-    const sparkScanRef = useRef(null);
+    const barcodeCaptureRef = useRef(null);
     const viewRef = useRef(null);
     const containerRef = useRef(null);
+    const cameraRef = useRef(null);
 
     const LICENSE_KEY = import.meta.env.VITE_SCANDIT_LICENSE_KEY;
 
@@ -22,13 +23,16 @@ const ScanditPage = () => {
     const cleanupScanner = async () => {
         try {
             if (viewRef.current) {
-                if (typeof viewRef.current.dispose === 'function') {
-                    viewRef.current.dispose();
-                }
+                viewRef.current.detachFromContainer();
                 viewRef.current = null;
             }
-            if (sparkScanRef.current) {
-                sparkScanRef.current = null;
+            if (barcodeCaptureRef.current) {
+                await barcodeCaptureRef.current.setEnabled(false);
+                barcodeCaptureRef.current = null;
+            }
+            if (cameraRef.current) {
+                await cameraRef.current.switchToDesiredState(SDCCore.FrameSourceState.Off);
+                cameraRef.current = null;
             }
             if (contextRef.current) {
                 await contextRef.current.dispose();
@@ -47,7 +51,9 @@ const ScanditPage = () => {
         try {
             await cleanupScanner();
 
-            addLog("Creating DataCaptureContext...");
+            addLog("Initializing Scandit BarcodeCapture...");
+
+            // 1. Create Context
             const context = await SDCCore.DataCaptureContext.forLicenseKey(LICENSE_KEY, {
                 libraryLocation: "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-barcode@6/build/engine/",
                 moduleLoaders: [SDCBarcode.barcodeCaptureLoader()]
@@ -55,8 +61,20 @@ const ScanditPage = () => {
             contextRef.current = context;
             addLog("✓ Context created");
 
-            addLog("Setting up SparkScan...");
-            const settings = new SDCBarcode.SparkScanSettings();
+            // 2. Configure Camera
+            const camera = SDCCore.Camera.default;
+            if (!camera) throw new Error("No camera found");
+
+            context.setFrameSource(camera);
+            cameraRef.current = camera;
+
+            const cameraSettings = SDCBarcode.BarcodeCapture.recommendedCameraSettings;
+            await camera.applySettings(cameraSettings);
+            await camera.switchToDesiredState(SDCCore.FrameSourceState.On);
+            addLog("✓ Camera started");
+
+            // 3. Configure Barcode Capture Settings
+            const settings = new SDCBarcode.BarcodeCaptureSettings();
             settings.enableSymbologies([
                 SDCBarcode.Symbology.Code128,
                 SDCBarcode.Symbology.EAN13UPCA,
@@ -64,52 +82,42 @@ const ScanditPage = () => {
                 SDCBarcode.Symbology.QR
             ]);
 
-            const sparkScan = await SDCBarcode.SparkScan.forSettings(settings);
-            sparkScanRef.current = sparkScan;
+            // 4. Create Barcode Capture Mode
+            const barcodeCapture = await SDCBarcode.BarcodeCapture.forSettings(settings);
+            await barcodeCapture.setEnabled(true);
+            barcodeCaptureRef.current = barcodeCapture;
 
-            sparkScan.addListener({
-                didScan: (sparkScan, session) => {
+            // 5. Add Listener
+            barcodeCapture.addListener({
+                didScan: (mode, session) => {
                     const barcode = session.newlyRecognizedBarcodes[0];
                     if (barcode) {
-                        setLastResult(barcode.data);
-                        addLog(`✓ SCANNED: ${barcode.data}`);
+                        const data = barcode.data;
+                        setLastResult(data);
+                        addLog(`✓ SCANNED: ${data}`);
                         if (navigator.vibrate) navigator.vibrate(200);
                     }
                 }
             });
 
-            addLog("Creating SparkScan view...");
-            const viewSettings = new SDCBarcode.SparkScanViewSettings();
-            viewSettings.torchButtonVisible = true;
-            viewSettings.scanningBehaviorButtonVisible = true;
-            viewSettings.targetModeButtonVisible = true;
+            // 6. Add Mode to Context
+            await context.addMode(barcodeCapture);
 
-            if (!containerRef.current) {
-                throw new Error("Container element not found");
-            }
+            // 7. Create Data Capture View
+            if (!containerRef.current) throw new Error("Container not found");
 
-            const sparkScanView = await SDCBarcode.SparkScanView.create(
-                containerRef.current,
-                context,
-                sparkScan,
-                viewSettings
+            const view = await SDCCore.DataCaptureView.forContext(context);
+            view.connectToElement(containerRef.current);
+            viewRef.current = view;
+
+            // Add overlay
+            const overlay = await SDCBarcode.BarcodeCaptureOverlay.withBarcodeCaptureForView(
+                barcodeCapture,
+                view
             );
-            viewRef.current = sparkScanView;
+            overlay.viewfinder = new SDCCore.RectangularViewfinder();
 
-            addLog("Starting scanner...");
-            await sparkScan.setEnabled(true);
-            addLog("✓ SparkScan enabled");
-
-            // Check camera permissions
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                stream.getTracks().forEach(track => track.stop());
-                addLog("✓ Camera permission granted");
-            } catch (e) {
-                addLog("⚠️ Camera permission check failed: " + e.message);
-            }
-
-            addLog("✓ SparkScan ready!");
+            addLog("✓ Scanner running in continuous mode");
 
         } catch (err) {
             addLog(`✗ ERROR: ${err.message}`);
@@ -130,12 +138,6 @@ const ScanditPage = () => {
     };
 
     useEffect(() => {
-        if (LICENSE_KEY) {
-            addLog("✓ License key loaded");
-        } else {
-            addLog("✗ No license key found");
-        }
-
         return () => {
             cleanupScanner();
         };
@@ -143,7 +145,7 @@ const ScanditPage = () => {
 
     return (
         <div className="card">
-            <h2>Test Scandit SDK</h2>
+            <h2>Test Scandit SDK (Continuous)</h2>
 
             {!LICENSE_KEY && (
                 <div style={{
@@ -154,38 +156,21 @@ const ScanditPage = () => {
                     borderRadius: '8px',
                     marginBottom: '1rem'
                 }}>
-                    <strong>❌ Erreur</strong>
-                    <p style={{ margin: '0.5rem 0 0 0' }}>
-                        Variable VITE_SCANDIT_LICENSE_KEY non définie.
-                        Créez un fichier .env avec votre clé Scandit.
-                    </p>
+                    <strong>❌ Erreur Configuration</strong>
+                    <p>Clé de licence manquante dans .env</p>
                 </div>
             )}
 
             {LICENSE_KEY && (
                 <>
-                    <div style={{
-                        background: '#dbeafe',
-                        border: '1px solid #3b82f6',
-                        color: '#1e40af',
-                        padding: '1rem',
-                        borderRadius: '8px',
-                        marginBottom: '1rem'
-                    }}>
-                        <strong>ℹ️ SparkScan</strong>
-                        <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem' }}>
-                            Interface optimisée de Scandit pour le scan de codes-barres.
-                        </p>
-                    </div>
-
                     <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', justifyContent: 'center' }}>
                         {!isScanning ? (
                             <button onClick={startScanner} style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}>
-                                🚀 Start Scanner
+                                🎥 Démarrer Caméra
                             </button>
                         ) : (
                             <button onClick={stopScanner} style={{ backgroundColor: '#dc2626', padding: '1rem 2rem', fontSize: '1.1rem' }}>
-                                ⛔ Stop
+                                ⏹ Arrêter
                             </button>
                         )}
                     </div>
@@ -201,7 +186,7 @@ const ScanditPage = () => {
                             fontWeight: 'bold',
                             textAlign: 'center'
                         }}>
-                            ✓ RÉSULTAT: {lastResult}
+                            ✓ {lastResult}
                         </div>
                     )}
 
@@ -209,13 +194,13 @@ const ScanditPage = () => {
                         ref={containerRef}
                         style={{
                             width: '100%',
-                            maxWidth: '800px',
-                            minHeight: '500px',
+                            height: '500px',
                             margin: '0 auto',
                             backgroundColor: '#000',
                             borderRadius: '8px',
                             overflow: 'hidden',
-                            position: 'relative'
+                            position: 'relative',
+                            border: '2px solid #333'
                         }}
                     >
                         {!isScanning && (
@@ -225,27 +210,20 @@ const ScanditPage = () => {
                                 left: '50%',
                                 transform: 'translate(-50%, -50%)',
                                 color: '#666',
-                                textAlign: 'center',
-                                padding: '2rem'
+                                textAlign: 'center'
                             }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📱</div>
-                                <div>Cliquez sur "Start Scanner"</div>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📷</div>
+                                <div>Mode Continu</div>
                             </div>
                         )}
                     </div>
                 </>
             )}
 
-            <div style={{ marginTop: '1rem', maxHeight: '300px', overflow: 'auto' }}>
-                <h3>Logs:</h3>
+            <div style={{ marginTop: '1rem', maxHeight: '200px', overflow: 'auto', fontSize: '0.8rem', textAlign: 'left', background: '#f5f5f5', padding: '0.5rem' }}>
+                <strong>Logs:</strong>
                 {logs.map((log, i) => (
-                    <div key={i} style={{
-                        fontSize: '0.85rem',
-                        padding: '0.25rem',
-                        borderBottom: '1px solid #333'
-                    }}>
-                        {log}
-                    </div>
+                    <div key={i} style={{ borderBottom: '1px solid #ddd' }}>{log}</div>
                 ))}
             </div>
         </div>
