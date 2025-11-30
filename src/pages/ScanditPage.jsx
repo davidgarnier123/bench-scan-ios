@@ -7,11 +7,11 @@ const ScanditPage = () => {
     const [isScanning, setIsScanning] = useState(false);
     const [lastResult, setLastResult] = useState(null);
 
-    const contextRef = useRef(null);
-    const barcodeCaptureRef = useRef(null);
     const viewRef = useRef(null);
-    const containerRef = useRef(null);
+    const contextRef = useRef(null);
     const cameraRef = useRef(null);
+    const barcodeCaptureRef = useRef(null);
+    const containerRef = useRef(null);
 
     const LICENSE_KEY = import.meta.env.VITE_SCANDIT_LICENSE_KEY;
 
@@ -39,7 +39,7 @@ const ScanditPage = () => {
                 contextRef.current = null;
             }
         } catch (err) {
-            addLog(`Cleanup error: ${err.message}`);
+            console.error(err);
         }
     };
 
@@ -50,30 +50,46 @@ const ScanditPage = () => {
 
         try {
             await cleanupScanner();
+            addLog("Starting initialization sequence...");
 
-            addLog("Initializing Scandit BarcodeCapture...");
+            // 1. Create View immediately
+            const view = new SDCCore.DataCaptureView();
+            viewRef.current = view;
 
-            // 1. Create Context
+            // 2. Setup Camera (Best Guess)
+            addLog("Selecting camera...");
+            const camera = SDCCore.Camera.pickBestGuess();
+            if (!camera) throw new Error("No camera found");
+            cameraRef.current = camera;
+
+            // Apply settings
+            const cameraSettings = SDCBarcode.BarcodeCapture.recommendedCameraSettings;
+            await camera.applySettings(cameraSettings);
+
+            // Turn camera ON immediately
+            addLog("Starting camera stream...");
+            await camera.switchToDesiredState(SDCCore.FrameSourceState.On);
+
+            // 3. Connect View to Element WITH Camera (Crucial step from your example)
+            if (containerRef.current) {
+                view.connectToElement(containerRef.current);
+                addLog("✓ View connected to DOM");
+            }
+
+            // 4. Create Context
+            addLog("Loading Scandit engine...");
             const context = await SDCCore.DataCaptureContext.forLicenseKey(LICENSE_KEY, {
                 libraryLocation: "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-barcode@6/build/engine/",
                 moduleLoaders: [SDCBarcode.barcodeCaptureLoader()]
             });
             contextRef.current = context;
-            addLog("✓ Context created");
+            addLog("✓ Engine loaded");
 
-            // 2. Configure Camera
-            const camera = SDCCore.Camera.default;
-            if (!camera) throw new Error("No camera found");
+            // 5. Link everything
+            await view.setContext(context);
+            await context.setFrameSource(camera);
 
-            context.setFrameSource(camera);
-            cameraRef.current = camera;
-
-            const cameraSettings = SDCBarcode.BarcodeCapture.recommendedCameraSettings;
-            await camera.applySettings(cameraSettings);
-            await camera.switchToDesiredState(SDCCore.FrameSourceState.On);
-            addLog("✓ Camera started");
-
-            // 3. Configure Barcode Capture Settings
+            // 6. Configure Barcode Capture
             const settings = new SDCBarcode.BarcodeCaptureSettings();
             settings.enableSymbologies([
                 SDCBarcode.Symbology.Code128,
@@ -82,42 +98,46 @@ const ScanditPage = () => {
                 SDCBarcode.Symbology.QR
             ]);
 
-            // 4. Create Barcode Capture Mode
-            const barcodeCapture = await SDCBarcode.BarcodeCapture.forSettings(settings);
-            await barcodeCapture.setEnabled(true);
+            // Setup Code 128 specific settings if needed (from your example)
+            const code128Settings = settings.settingsForSymbology(SDCBarcode.Symbology.Code128);
+            code128Settings.activeSymbolCounts = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+
+            const barcodeCapture = await SDCBarcode.BarcodeCapture.forContext(context, settings);
             barcodeCaptureRef.current = barcodeCapture;
 
-            // 5. Add Listener
-            barcodeCapture.addListener({
-                didScan: (mode, session) => {
-                    const barcode = session.newlyRecognizedBarcodes[0];
-                    if (barcode) {
-                        const data = barcode.data;
-                        setLastResult(data);
-                        addLog(`✓ SCANNED: ${data}`);
-                        if (navigator.vibrate) navigator.vibrate(200);
-                    }
-                }
-            });
-
-            // 6. Add Mode to Context
-            await context.addMode(barcodeCapture);
-
-            // 7. Create Data Capture View
-            if (!containerRef.current) throw new Error("Container not found");
-
-            const view = await SDCCore.DataCaptureView.forContext(context);
-            view.connectToElement(containerRef.current);
-            viewRef.current = view;
-
-            // Add overlay
+            // 7. Add Overlay
             const overlay = await SDCBarcode.BarcodeCaptureOverlay.withBarcodeCaptureForView(
                 barcodeCapture,
                 view
             );
-            overlay.viewfinder = new SDCCore.RectangularViewfinder();
+            // Add viewfinder (Square or Rectangular)
+            overlay.viewfinder = new SDCCore.RectangularViewfinder(
+                SDCCore.RectangularViewfinderStyle.Square,
+                SDCCore.RectangularViewfinderLineStyle.Light
+            );
 
-            addLog("✓ Scanner running in continuous mode");
+            // 8. Add Listener (Continuous Mode)
+            barcodeCapture.addListener({
+                didScan: async (mode, session) => {
+                    const barcode = session.newlyRecognizedBarcodes[0];
+                    if (barcode) {
+                        const data = barcode.data;
+                        const symbology = barcode.symbology;
+
+                        setLastResult(data);
+                        addLog(`✓ SCANNED: ${data} (${symbology})`);
+
+                        if (navigator.vibrate) navigator.vibrate(200);
+
+                        // NOTE: We do NOT disable the scanner here to allow continuous scanning
+                        // If you wanted "Tap to scan next", you would disable it here.
+                    }
+                }
+            });
+
+            // 9. Enable Capture
+            await barcodeCapture.setEnabled(true);
+            addLog("✓ Scanner running (Continuous)");
 
         } catch (err) {
             addLog(`✗ ERROR: ${err.message}`);
@@ -192,9 +212,11 @@ const ScanditPage = () => {
 
                     <div
                         ref={containerRef}
+                        id="data-capture-view"
                         style={{
                             width: '100%',
-                            height: '500px',
+                            height: '60vh',
+                            minHeight: '400px',
                             margin: '0 auto',
                             backgroundColor: '#000',
                             borderRadius: '8px',
