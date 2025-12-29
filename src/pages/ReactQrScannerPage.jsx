@@ -12,11 +12,9 @@ const ReactQrScannerPage = () => {
     const [logs, setLogs] = useState([]);
 
     // Configuration Options
-    const [selectedFormats, setSelectedFormats] = useState(['code_128', 'qr_code']);
     const [resolution, setResolution] = useState('FHD');
     const [focusMode, setFocusMode] = useState('continuous');
     const [scanDelay, setScanDelay] = useState(500);
-    const [enableAudio, setEnableAudio] = useState(true);
     const [enableTorch, setEnableTorch] = useState(true);
     const [enableZoom, setEnableZoom] = useState(true);
     const [enableFinder, setEnableFinder] = useState(true);
@@ -69,28 +67,7 @@ const ReactQrScannerPage = () => {
         return constraints;
     };
 
-    const availableFormats = [
-        { value: 'qr_code', label: 'QR Code' },
-        { value: 'code_128', label: 'Code 128' },
-        { value: 'code_39', label: 'Code 39' },
-        { value: 'ean_13', label: 'EAN-13' },
-        { value: 'ean_8', label: 'EAN-8' },
-        { value: 'upc_a', label: 'UPC-A' },
-        { value: 'upc_e', label: 'UPC-E' },
-        { value: 'data_matrix', label: 'Data Matrix' },
-        { value: 'pdf417', label: 'PDF417' },
-        { value: 'aztec', label: 'Aztec' }
-    ];
 
-    const toggleFormat = (format) => {
-        setSelectedFormats(prev => {
-            if (prev.includes(format)) {
-                return prev.filter(f => f !== format);
-            } else {
-                return [...prev, format];
-            }
-        });
-    };
 
     // Select back camera by default when devices are loaded
     React.useEffect(() => {
@@ -125,11 +102,11 @@ const ReactQrScannerPage = () => {
                         onScan={handleScan}
                         onError={handleError}
                         constraints={buildConstraints()}
-                        formats={selectedFormats}
+                        formats={['code_128']}
                         paused={isPaused}
                         scanDelay={scanDelay}
                         components={{
-                            audio: enableAudio,
+                            onOff: true,
                             torch: enableTorch,
                             zoom: enableZoom,
                             finder: enableFinder,
@@ -188,21 +165,9 @@ const ReactQrScannerPage = () => {
                     </select>
                 </div>
 
-                {/* Format Selection */}
-                <div>
-                    <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '0.5rem' }}>Barcode Formats:</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
-                        {availableFormats.map(format => (
-                            <label key={format.value} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedFormats.includes(format.value)}
-                                    onChange={() => toggleFormat(format.value)}
-                                />
-                                <span>{format.label}</span>
-                            </label>
-                        ))}
-                    </div>
+                {/* Format Locked to Code 128 */}
+                <div style={{ padding: '0.5rem', backgroundColor: '#f0f0f0', borderRadius: '4px', textAlign: 'center' }}>
+                    <strong>Format:</strong> Code 128 (locked)
                 </div>
 
                 {/* Resolution */}
@@ -254,14 +219,6 @@ const ReactQrScannerPage = () => {
                 <div>
                     <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '0.5rem' }}>UI Components:</label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                            <input
-                                type="checkbox"
-                                checked={enableAudio}
-                                onChange={(e) => setEnableAudio(e.target.checked)}
-                            />
-                            <span>Audio Beep</span>
-                        </label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                             <input
                                 type="checkbox"
