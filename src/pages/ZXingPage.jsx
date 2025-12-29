@@ -150,7 +150,11 @@ const ZXingPage = () => {
         <div className="card">
             <h2>Test ZXing</h2>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem', textAlign: 'left', maxWidth: '400px', margin: '0 auto 1rem auto' }}>
+            <div className="scanner-box">
+                <video ref={videoRef} style={{ width: '100%', height: 'auto', display: 'block' }}></video>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem', textAlign: 'left', maxWidth: '400px', margin: '1rem auto' }}>
 
                 {/* Camera Selection */}
                 <div>
@@ -252,10 +256,6 @@ const ZXingPage = () => {
                     <strong>FOUND:</strong> {lastResult}
                 </div>
             )}
-
-            <div className="scanner-box">
-                <video ref={videoRef} style={{ width: '100%', height: 'auto', display: 'block' }}></video>
-            </div>
 
             <div className="log-container">
                 {logs.map((log, i) => <div key={i}>{log}</div>)}

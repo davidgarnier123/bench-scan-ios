@@ -179,6 +179,40 @@ const ScanditPage = () => {
 
             {LICENSE_KEY && (
                 <>
+                    {/* Conteneur Scanner */}
+                    <div
+                        ref={containerRef}
+                        id="data-capture-view"
+                        style={{
+                            width: '100%',
+                            height: '50vh',
+                            minHeight: '300px',
+                            backgroundColor: '#000',
+                            borderRadius: '12px',
+                            overflow: 'hidden',
+                            position: 'relative',
+                            border: '3px solid #333',
+                        }}
+                    >
+                        {!isScanning && (
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    color: '#888',
+                                    textAlign: 'center',
+                                    fontSize: '1.2rem',
+                                }}
+                            >
+                                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📷</div>
+                                <div>Appuyez pour démarrer</div>
+                                <div style={{ fontSize: '0.9rem', opacity: 0.7 }}>Mode Continu</div>
+                            </div>
+                        )}
+                    </div>
+
                     <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', justifyContent: 'center' }}>
                         {!isScanning ? (
                             <button
@@ -213,94 +247,58 @@ const ScanditPage = () => {
                         )}
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {/* Conteneur Scanner */}
+                    {/* Liste des codes scannés */}
+                    {scannedCodes.length > 0 && (
                         <div
-                            ref={containerRef}
-                            id="data-capture-view"
                             style={{
-                                width: '100%',
-                                height: '50vh',
-                                minHeight: '300px',
-                                backgroundColor: '#000',
+                                background: '#f0fdf4',
+                                border: '2px solid #22c55e',
                                 borderRadius: '12px',
-                                overflow: 'hidden',
-                                position: 'relative',
-                                border: '3px solid #333',
+                                padding: '1.5rem',
+                                maxHeight: '250px',
+                                overflowY: 'auto',
                             }}
                         >
-                            {!isScanning && (
-                                <div
-                                    style={{
-                                        position: 'absolute',
-                                        top: '50%',
-                                        left: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        color: '#888',
-                                        textAlign: 'center',
-                                        fontSize: '1.2rem',
-                                    }}
-                                >
-                                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📷</div>
-                                    <div>Appuyez pour démarrer</div>
-                                    <div style={{ fontSize: '0.9rem', opacity: 0.7 }}>Mode Continu</div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Liste des codes scannés */}
-                        {scannedCodes.length > 0 && (
-                            <div
-                                style={{
-                                    background: '#f0fdf4',
-                                    border: '2px solid #22c55e',
-                                    borderRadius: '12px',
-                                    padding: '1.5rem',
-                                    maxHeight: '250px',
-                                    overflowY: 'auto',
-                                }}
-                            >
-                                <h3 style={{ margin: '0 0 1rem 0', color: '#15803d', fontSize: '1.2rem' }}>
-                                    📋 Codes Scannés ({scannedCodes.length})
-                                </h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                    {scannedCodes.map((code, index) => (
-                                        <div
-                                            key={index}
-                                            style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
-                                                padding: '1rem',
-                                                background: 'white',
-                                                borderRadius: '8px',
-                                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                                borderLeft: '4px solid #22c55e',
-                                            }}
-                                        >
-                                            <span style={{
-                                                fontWeight: 'bold',
-                                                fontFamily: 'monospace',
-                                                fontSize: '1.1rem',
-                                                color: '#15803d'
-                                            }}>
-                                                {code.data}
-                                            </span>
-                                            <span style={{
-                                                color: '#666',
-                                                fontSize: '0.9rem',
-                                                background: '#f0f9ff',
-                                                padding: '0.25rem 0.75rem',
-                                                borderRadius: '12px'
-                                            }}>
-                                                {code.symbology} • {code.time}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
+                            <h3 style={{ margin: '0 0 1rem 0', color: '#15803d', fontSize: '1.2rem' }}>
+                                📋 Codes Scannés ({scannedCodes.length})
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {scannedCodes.map((code, index) => (
+                                    <div
+                                        key={index}
+                                        style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            padding: '1rem',
+                                            background: 'white',
+                                            borderRadius: '8px',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                            borderLeft: '4px solid #22c55e',
+                                        }}
+                                    >
+                                        <span style={{
+                                            fontWeight: 'bold',
+                                            fontFamily: 'monospace',
+                                            fontSize: '1.1rem',
+                                            color: '#15803d'
+                                        }}>
+                                            {code.data}
+                                        </span>
+                                        <span style={{
+                                            color: '#666',
+                                            fontSize: '0.9rem',
+                                            background: '#f0f9ff',
+                                            padding: '0.25rem 0.75rem',
+                                            borderRadius: '12px'
+                                        }}>
+                                            {code.symbology} • {code.time}
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </>
             )}
 
@@ -345,7 +343,7 @@ const ScanditPage = () => {
                     <li>✅ Versions packages identiques (@scandit/...@8.x)</li>
                 </ul>
             </details>
-        </div>
+        </div >
     );
 };
 

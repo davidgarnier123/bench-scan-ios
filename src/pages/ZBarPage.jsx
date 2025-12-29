@@ -161,7 +161,12 @@ const ZBarPage = () => {
         <div className="card">
             <h2>Test ZBar</h2>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem', textAlign: 'left', maxWidth: '400px', margin: '0 auto 1rem auto' }}>
+            <div className="scanner-box">
+                <video ref={videoRef} style={{ width: '100%', height: 'auto', display: 'block' }}></video>
+                <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem', textAlign: 'left', maxWidth: '400px', margin: '1rem auto' }}>
 
                 <div>
                     <label>Caméra: </label>
@@ -220,11 +225,6 @@ const ZBarPage = () => {
                     <strong>FOUND:</strong> {lastResult}
                 </div>
             )}
-
-            <div className="scanner-box">
-                <video ref={videoRef} style={{ width: '100%', height: 'auto', display: 'block' }}></video>
-                <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
-            </div>
 
             <div className="log-container">
                 {logs.map((log, i) => <div key={i}>{log}</div>)}

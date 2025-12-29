@@ -129,21 +129,6 @@ const Quagga2Scanner = ({ onDetected, scanning }) => {
         <div style={{ width: '100%', maxWidth: '640px', margin: '0 auto' }}>
             {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
 
-            <div style={{ marginBottom: '10px' }}>
-                <label htmlFor="camera-select" style={{ marginRight: '10px' }}>Select Camera:</label>
-                <select
-                    id="camera-select"
-                    value={selectedCamera}
-                    onChange={(e) => setSelectedCamera(e.target.value)}
-                >
-                    {cameras.map((camera) => (
-                        <option key={camera.deviceId} value={camera.deviceId}>
-                            {camera.label || `Camera ${camera.deviceId.substring(0, 5)}...`}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
             <div
                 ref={scannerRef}
                 id="interactive"
@@ -153,7 +138,9 @@ const Quagga2Scanner = ({ onDetected, scanning }) => {
                     width: '100%',
                     height: 'auto',
                     overflow: 'hidden',
-                    backgroundColor: '#000' // Visual placeholder
+                    backgroundColor: '#000',
+                    borderRadius: '8px',
+                    marginBottom: '1rem'
                 }}
             >
                 {/* Quagga injects video and canvas here */}
@@ -168,6 +155,21 @@ const Quagga2Scanner = ({ onDetected, scanning }) => {
                   top: 0;
               }
           `}</style>
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
+                <label htmlFor="camera-select" style={{ marginRight: '10px' }}>Select Camera:</label>
+                <select
+                    id="camera-select"
+                    value={selectedCamera}
+                    onChange={(e) => setSelectedCamera(e.target.value)}
+                >
+                    {cameras.map((camera) => (
+                        <option key={camera.deviceId} value={camera.deviceId}>
+                            {camera.label || `Camera ${camera.deviceId.substring(0, 5)}...`}
+                        </option>
+                    ))}
+                </select>
             </div>
         </div>
     );

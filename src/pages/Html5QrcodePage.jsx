@@ -124,7 +124,11 @@ const Html5QrcodePage = () => {
         <div className="card">
             <h2>Test html5-qrcode</h2>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem', textAlign: 'left', maxWidth: '400px', margin: '0 auto 1rem auto' }}>
+            <div className="scanner-box">
+                <div id={scannerId}></div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem', textAlign: 'left', maxWidth: '400px', margin: '1rem auto' }}>
 
                 {/* Resolution */}
                 <div>
@@ -174,16 +178,6 @@ const Html5QrcodePage = () => {
                 ) : (
                     <button onClick={stopScanner} style={{ backgroundColor: '#dc2626', width: '100%', marginTop: '1rem' }}>Stop Camera</button>
                 )}
-            </div>
-
-            {lastResult && (
-                <div style={{ background: '#22c55e', color: 'white', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
-                    <strong>FOUND:</strong> {lastResult}
-                </div>
-            )}
-
-            <div className="scanner-box">
-                <div id={scannerId}></div>
             </div>
 
             <div className="log-container">

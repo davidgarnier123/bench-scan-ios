@@ -196,7 +196,11 @@ const QuaggaPage = () => {
         <div className="card">
             <h2>Test Quagga2</h2>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem', textAlign: 'left', maxWidth: '400px', margin: '0 auto 1rem auto' }}>
+            <div className="scanner-box" ref={scannerRef} style={{ position: 'relative', overflow: 'hidden' }}>
+                {/* Quagga injects video and canvas here */}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem', textAlign: 'left', maxWidth: '400px', margin: '1rem auto' }}>
 
                 <div>
                     <label>Caméra: </label>
@@ -288,10 +292,6 @@ const QuaggaPage = () => {
                     <strong>FOUND:</strong> {lastResult}
                 </div>
             )}
-
-            <div className="scanner-box" ref={scannerRef} style={{ position: 'relative', overflow: 'hidden' }}>
-                {/* Quagga injects video and canvas here */}
-            </div>
 
             <div className="log-container">
                 {logs.map((log, i) => <div key={i}>{log}</div>)}
