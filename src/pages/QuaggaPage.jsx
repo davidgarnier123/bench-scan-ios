@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import Quagga from '@ericblade/quagga2';
+import ScannerNotification from '../components/ScannerNotification';
 
 const QuaggaPage = () => {
     const [logs, setLogs] = useState([]);
@@ -292,6 +294,8 @@ const QuaggaPage = () => {
                     <strong>FOUND:</strong> {lastResult}
                 </div>
             )}
+
+            <ScannerNotification result={lastResult} />
 
             <div className="log-container">
                 {logs.map((log, i) => <div key={i}>{log}</div>)}

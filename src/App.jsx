@@ -7,6 +7,7 @@ import ZBarPage from './pages/ZBarPage';
 import ScanditPage from './pages/ScanditPage';
 import Html5QrcodeDemoPage from './pages/Html5QrcodeDemoPage';
 import Quagga2Page from './pages/Quagga2Page';
+import BarcodeDetectorPage from './pages/BarcodeDetectorPage';
 
 const cardStyle = {
   border: '1px solid #ddd',
@@ -73,6 +74,7 @@ function App() {
         >
           <option value="/">Select Scanner...</option>
           <option value="/quagga2">Quagga2 (New)</option>
+          <option value="/barcode-detector">Polyfill (New)</option>
           <option value="/html5-qrcode">html5-qrcode</option>
           <option value="/quagga">Quagga (Old)</option>
           <option value="/zxing">ZXing</option>
@@ -100,6 +102,14 @@ function App() {
                   <span style={{ fontSize: '2rem' }}>📷</span>
                   <h3>Quagga2</h3>
                   <p style={{ fontSize: '0.8rem', color: '#666' }}>New Implementation</p>
+                </div>
+              </Link>
+
+              <Link to="/barcode-detector" style={{ textDecoration: 'none' }}>
+                <div style={cardStyle}>
+                  <span style={{ fontSize: '2rem' }}>🌐</span>
+                  <h3>Polyfill</h3>
+                  <p style={{ fontSize: '0.8rem', color: '#666' }}>BarcodeDetector</p>
                 </div>
               </Link>
 
@@ -160,6 +170,7 @@ function App() {
         <Route path="/zbar" element={<ZBarPage />} />
         <Route path="/scandit" element={<ScanditPage />} />
         <Route path="/quagga2" element={<Quagga2Page />} />
+        <Route path="/barcode-detector" element={<BarcodeDetectorPage />} />
       </Routes>
     </div>
   );

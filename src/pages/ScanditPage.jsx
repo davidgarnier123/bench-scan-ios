@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as SDCCore from '@scandit/web-datacapture-core';
 import * as SDCBarcode from '@scandit/web-datacapture-barcode';
+import ScannerNotification from '../components/ScannerNotification';
 
 const ScanditPage = () => {
     const [logs, setLogs] = useState([]);
@@ -251,30 +252,28 @@ const ScanditPage = () => {
                     {scannedCodes.length > 0 && (
                         <div
                             style={{
-                                background: '#f0fdf4',
-                                border: '2px solid #22c55e',
-                                borderRadius: '12px',
-                                padding: '1.5rem',
-                                maxHeight: '250px',
-                                overflowY: 'auto',
+                                marginTop: '2rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.5rem',
+                                alignItems: 'center'
                             }}
                         >
-                            <h3 style={{ margin: '0 0 1rem 0', color: '#15803d', fontSize: '1.2rem' }}>
-                                📋 Codes Scannés ({scannedCodes.length})
-                            </h3>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {scannedCodes.map((code, index) => (
+                            <h3>Codes Scannés ({scannedCodes.length})</h3>
+                            <div style={{ width: '100%', maxWidth: '400px' }}>
+                                {scannedCodes.slice(0, 5).map((code, index) => (
                                     <div
                                         key={index}
                                         style={{
+                                            background: 'white',
+                                            border: '1px solid #e2e8f0',
+                                            padding: '1rem',
+                                            borderRadius: '8px',
+                                            marginBottom: '0.5rem',
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                                             display: 'flex',
                                             justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            padding: '1rem',
-                                            background: 'white',
-                                            borderRadius: '8px',
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                            borderLeft: '4px solid #22c55e',
+                                            alignItems: 'center'
                                         }}
                                     >
                                         <span style={{
@@ -299,6 +298,9 @@ const ScanditPage = () => {
                             </div>
                         </div>
                     )}
+
+                    <ScannerNotification result={scannedCodes.length > 0 ? scannedCodes[0].data : null} />
+
                 </>
             )}
 

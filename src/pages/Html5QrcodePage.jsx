@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import ScannerNotification from '../components/ScannerNotification';
 
 const Html5QrcodePage = () => {
     const [logs, setLogs] = useState([]);
@@ -17,7 +18,7 @@ const Html5QrcodePage = () => {
 
     const addLog = (msg) => {
         const time = new Date().toLocaleTimeString();
-        setLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 50));
+        setLogs(prev => [`[${time}] ${msg} `, ...prev].slice(0, 50));
     };
 
     const cleanupScanner = async () => {
@@ -30,7 +31,7 @@ const Html5QrcodePage = () => {
                 }
                 scannerRef.current.clear();
             } catch (err) {
-                addLog(`Cleanup error: ${err}`);
+                addLog(`Cleanup error: ${err} `);
             }
             scannerRef.current = null;
         }
@@ -76,7 +77,7 @@ const Html5QrcodePage = () => {
                 resConstraints.height = { min: 720, ideal: 1080 };
             }
 
-            addLog(`Starting... Res: ${resolution}, FPS: ${fps}, Focus: ${focusMode}`);
+            addLog(`Starting...Res: ${resolution}, FPS: ${fps}, Focus: ${focusMode} `);
 
             // First argument: Camera ID or Config (facingMode)
             // Second argument: Configuration (fps, qrbox, etc.)
@@ -88,7 +89,7 @@ const Html5QrcodePage = () => {
                 },
                 (decodedText, decodedResult) => {
                     setLastResult(decodedText);
-                    addLog(`SCANNED: ${decodedText}`);
+                    addLog(`SCANNED: ${decodedText} `);
                     if (navigator.vibrate) navigator.vibrate(200);
                 },
                 (errorMessage) => {
@@ -98,7 +99,7 @@ const Html5QrcodePage = () => {
             addLog("Scanner started successfully.");
 
         } catch (err) {
-            addLog(`START ERROR: ${err}`);
+            addLog(`START ERROR: ${err} `);
             setIsScanning(false);
 
             if (err?.message?.includes("already under transition")) {
@@ -179,6 +180,14 @@ const Html5QrcodePage = () => {
                     <button onClick={stopScanner} style={{ backgroundColor: '#dc2626', width: '100%', marginTop: '1rem' }}>Stop Camera</button>
                 )}
             </div>
+
+            {lastResult && (
+                <div style={{ background: '#22c55e', color: 'white', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+                    <strong>FOUND:</strong> {lastResult}
+                </div>
+            )}
+
+            <ScannerNotification result={lastResult} />
 
             <div className="log-container">
                 {logs.map((log, i) => <div key={i}>{log}</div>)}

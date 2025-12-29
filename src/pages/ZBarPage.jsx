@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import ScannerNotification from '../components/ScannerNotification';
 
 const ZBarPage = () => {
     const [logs, setLogs] = useState([]);
@@ -225,6 +226,8 @@ const ZBarPage = () => {
                     <strong>FOUND:</strong> {lastResult}
                 </div>
             )}
+
+            <ScannerNotification result={lastResult} />
 
             <div className="log-container">
                 {logs.map((log, i) => <div key={i}>{log}</div>)}

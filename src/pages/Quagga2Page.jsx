@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Quagga2Scanner from '../components/Quagga2Scanner';
+import ScannerNotification from '../components/ScannerNotification';
 
 const Quagga2Page = () => {
-    const [scanResult, setScanResult] = useState('');
     const [scanning, setScanning] = useState(false);
+    const [scanResult, setScanResult] = useState('');
 
     const handleDetected = (result) => {
         setScanResult(result);
-        // Optional: Stop scanning on detection found
-        // setScanning(false); 
+        // Notification is handled by the component watching 'result'
     };
 
     return (
@@ -17,6 +17,8 @@ const Quagga2Page = () => {
             <h2 style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>Quagga2 Scanner</h2>
 
             <Quagga2Scanner onDetected={handleDetected} scanning={scanning} />
+
+            <ScannerNotification result={scanResult} />
 
             <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
                 <button
@@ -49,7 +51,7 @@ const Quagga2Page = () => {
                         color: '#000000',
                         textAlign: 'center'
                     }}>
-                        <h3 style={{ margin: '0 0 5px 0', fontSize: '1rem', color: '#2e7d32' }}>Detected Code:</h3>
+                        <h3 style={{ margin: '0 0 5px 0', fontSize: '1rem', color: '#2e7d32' }}>Last Detected:</h3>
                         <p style={{ fontSize: '1.5rem', fontFamily: 'monospace', margin: 0, fontWeight: 'bold' }}>
                             {scanResult}
                         </p>

@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from '@zxing/library';
+import { BrowserMultiFormatReader } from '@zxing/browser';
+import { BarcodeFormat, DecodeHintType } from '@zxing/library';
+import ScannerNotification from '../components/ScannerNotification';
 
 const ZXingPage = () => {
     const [logs, setLogs] = useState([]);
@@ -256,6 +258,8 @@ const ZXingPage = () => {
                     <strong>FOUND:</strong> {lastResult}
                 </div>
             )}
+
+            <ScannerNotification result={lastResult} />
 
             <div className="log-container">
                 {logs.map((log, i) => <div key={i}>{log}</div>)}
