@@ -254,7 +254,7 @@ const CameraDetectionPage = () => {
                         borderRadius: '8px',
                         marginBottom: '1rem'
                     }}>
-                        <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: '#333' }}>
                             {cameraCapabilities.label}
                         </div>
                     </div>
@@ -279,7 +279,13 @@ const CameraDetectionPage = () => {
                                 <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.25rem' }}>
                                     {key}
                                 </div>
-                                <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
+                                <div style={{
+                                    fontWeight: 'bold',
+                                    fontSize: '0.95rem',
+                                    color: '#333',
+                                    overflowX: 'auto',
+                                    wordBreak: 'break-word'
+                                }}>
                                     {formatCapability(key, value)}
                                 </div>
                             </div>
@@ -305,7 +311,13 @@ const CameraDetectionPage = () => {
                                 <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.25rem' }}>
                                     {key}
                                 </div>
-                                <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
+                                <div style={{
+                                    fontWeight: 'bold',
+                                    fontSize: '0.95rem',
+                                    color: '#333',
+                                    overflowX: 'auto',
+                                    wordBreak: 'break-word'
+                                }}>
                                     {formatCapability(key, value)}
                                 </div>
                             </div>

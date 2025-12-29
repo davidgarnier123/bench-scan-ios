@@ -23,9 +23,10 @@ const cardStyle = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
+  justifyContent: 'center',
   gap: '0.5rem',
   color: '#333',
-  minHeight: '140px'
+  height: '140px'
 };
 
 function App() {
