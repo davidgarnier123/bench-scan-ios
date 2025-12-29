@@ -31,42 +31,57 @@ const Quagga2Scanner = ({ onDetected, scanning }) => {
     }, []);
 
     useEffect(() => {
-        if (!scanning || !selectedCamera) return;
+        // Cleanup function to stop scanner when component unmounts or dependencies change
+        const cleanup = () => {
+            try {
+                Quagga.stop();
+            } catch (e) {
+                console.warn("Error stopping Quagga:", e);
+            }
+        };
+
+        if (!scanning || !selectedCamera) {
+            cleanup();
+            return;
+        }
 
         let mounted = true;
 
-        Quagga.init({
-            inputStream: {
-                type: "LiveStream",
-                constraints: {
-                    width: { min: 640 },
-                    height: { min: 480 },
-                    facingMode: "environment",
-                    deviceId: selectedCamera ? { exact: selectedCamera } : undefined,
-                    aspectRatio: { min: 1, max: 2 }
+        // Small delay to ensure previous instance is fully stopped if we are switching
+        const initTimeout = setTimeout(() => {
+            Quagga.init({
+                inputStream: {
+                    type: "LiveStream",
+                    constraints: {
+                        width: { min: 640 },
+                        height: { min: 480 },
+                        facingMode: "environment",
+                        deviceId: { exact: selectedCamera },
+                        aspectRatio: { min: 1, max: 2 }
+                    },
+                    target: scannerRef.current,
                 },
-                target: scannerRef.current,
-            },
-            locator: {
-                patchSize: "medium",
-                halfSample: true,
-            },
-            numOfWorkers: 2, // Use web workers
-            decoder: {
-                readers: ["code_128_reader"], // Only Code 128 as requested
-            },
-            locate: true,
-        }, (err) => {
-            if (err) {
-                console.error("Quagga init error:", err);
-                if (mounted) setError(`Error initializing scanner: ${err.message || err}`);
-                return;
-            }
-            if (mounted) {
-                Quagga.start();
-                console.log("Quagga initialization finished. Ready to start");
-            }
-        });
+                locator: {
+                    patchSize: "medium",
+                    halfSample: true,
+                },
+                numOfWorkers: 2,
+                decoder: {
+                    readers: ["code_128_reader"],
+                },
+                locate: true,
+            }, (err) => {
+                if (err) {
+                    console.error("Quagga init error:", err);
+                    if (mounted) setError(`Error initializing scanner: ${err.message || err}`);
+                    return;
+                }
+                if (mounted) {
+                    Quagga.start();
+                    console.log("Quagga initialization finished. Ready to start");
+                }
+            });
+        }, 100);
 
         const handleDetected = (result) => {
             if (onDetected) {
@@ -103,9 +118,10 @@ const Quagga2Scanner = ({ onDetected, scanning }) => {
 
         return () => {
             mounted = false;
+            clearTimeout(initTimeout);
             Quagga.offDetected(handleDetected);
             Quagga.offProcessed(handleProcessed);
-            Quagga.stop();
+            cleanup();
         };
     }, [scanning, selectedCamera, onDetected]);
 
@@ -119,7 +135,6 @@ const Quagga2Scanner = ({ onDetected, scanning }) => {
                     id="camera-select"
                     value={selectedCamera}
                     onChange={(e) => setSelectedCamera(e.target.value)}
-                    disabled={!scanning}
                 >
                     {cameras.map((camera) => (
                         <option key={camera.deviceId} value={camera.deviceId}>

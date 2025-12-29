@@ -40,7 +40,8 @@ const Quagga2Page = () => {
                     border: '2px solid #4CAF50',
                     borderRadius: '8px',
                     maxWidth: '400px',
-                    backgroundColor: '#f0fff4'
+                    backgroundColor: '#f0fff4',
+                    color: '#000000'
                 }}>
                     <h3>Detected Code:</h3>
                     <p style={{ fontSize: '24px', fontFamily: 'monospace', margin: '5px 0' }}>
