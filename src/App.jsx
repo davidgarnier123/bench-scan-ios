@@ -8,6 +8,7 @@ import ScanditPage from './pages/ScanditPage';
 import Html5QrcodeDemoPage from './pages/Html5QrcodeDemoPage';
 import Quagga2Page from './pages/Quagga2Page';
 import BarcodeDetectorPage from './pages/BarcodeDetectorPage';
+import ReactQrScannerPage from './pages/ReactQrScannerPage';
 
 const cardStyle = {
   border: '1px solid #ddd',
@@ -75,6 +76,7 @@ function App() {
           <option value="/">Select Scanner...</option>
           <option value="/quagga2">Quagga2 (New)</option>
           <option value="/barcode-detector">Polyfill (New)</option>
+          <option value="/react-qr-scanner">React QR Scanner</option>
           <option value="/html5-qrcode">html5-qrcode</option>
           <option value="/quagga">Quagga (Old)</option>
           <option value="/zxing">ZXing</option>
@@ -112,6 +114,16 @@ function App() {
                   <p style={{ fontSize: '0.8rem', color: '#666' }}>BarcodeDetector</p>
                 </div>
               </Link>
+
+              <Link to="/react-qr-scanner" style={{ textDecoration: 'none' }}>
+                <div style={cardStyle}>
+                  <span style={{ fontSize: '2rem' }}>⚛️</span>
+                  <h3>React QR</h3>
+                  <p style={{ fontSize: '0.8rem', color: '#666' }}>Yudiel Scanner</p>
+                </div>
+              </Link>
+
+
 
               <Link to="/html5-qrcode" style={{ textDecoration: 'none' }}>
                 <div style={cardStyle}>
@@ -171,6 +183,7 @@ function App() {
         <Route path="/scandit" element={<ScanditPage />} />
         <Route path="/quagga2" element={<Quagga2Page />} />
         <Route path="/barcode-detector" element={<BarcodeDetectorPage />} />
+        <Route path="/react-qr-scanner" element={<ReactQrScannerPage />} />
       </Routes>
     </div>
   );
