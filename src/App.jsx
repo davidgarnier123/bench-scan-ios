@@ -24,7 +24,8 @@ const cardStyle = {
   flexDirection: 'column',
   alignItems: 'center',
   gap: '0.5rem',
-  color: '#333'
+  color: '#333',
+  minHeight: '140px'
 };
 
 function App() {
@@ -75,7 +76,6 @@ function App() {
           }}
         >
           <option value="/">Select Scanner...</option>
-          <option value="/camera-detection">🔍 Camera Detection</option>
           <option value="/quagga2">Quagga2 (New)</option>
           <option value="/barcode-detector">Polyfill (New)</option>
           <option value="/react-qr-scanner">React QR Scanner</option>
@@ -85,6 +85,8 @@ function App() {
           <option value="/zbar">ZBar</option>
           <option value="/scandit">Scandit</option>
           <option value="/html5-demo">Html5 Demo</option>
+          <option value="" disabled>──────────</option>
+          <option value="/camera-detection">🔧 Camera Detection</option>
         </select>
       </header>
 
@@ -101,14 +103,6 @@ function App() {
               maxWidth: '800px',
               margin: '0 auto'
             }}>
-              <Link to="/camera-detection" style={{ textDecoration: 'none' }}>
-                <div style={cardStyle}>
-                  <span style={{ fontSize: '2rem' }}>🔍</span>
-                  <h3>Camera Detection</h3>
-                  <p style={{ fontSize: '0.8rem', color: '#666' }}>Test Camera</p>
-                </div>
-              </Link>
-
               <Link to="/quagga2" style={{ textDecoration: 'none' }}>
                 <div style={cardStyle}>
                   <span style={{ fontSize: '2rem' }}>📷</span>
@@ -182,6 +176,36 @@ function App() {
                   <p style={{ fontSize: '0.8rem', color: '#666' }}>UI Test</p>
                 </div>
               </Link>
+            </div>
+
+            {/* Tools & Settings Section */}
+            <div style={{
+              marginTop: '3rem',
+              paddingTop: '2rem',
+              borderTop: '2px solid #e0e0e0',
+              maxWidth: '800px',
+              margin: '3rem auto 0'
+            }}>
+              <h2 style={{ fontSize: '1.2rem', marginBottom: '1rem', textAlign: 'center', color: '#666' }}>
+                🔧 Outils & Tests
+              </h2>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                gap: '1rem'
+              }}>
+                <Link to="/camera-detection" style={{ textDecoration: 'none' }}>
+                  <div style={{
+                    ...cardStyle,
+                    border: '2px solid #2196F3',
+                    backgroundColor: '#f5f9ff'
+                  }}>
+                    <span style={{ fontSize: '2rem' }}>🔍</span>
+                    <h3>Camera Detection</h3>
+                    <p style={{ fontSize: '0.8rem', color: '#666' }}>Test & Analyze</p>
+                  </div>
+                </Link>
+              </div>
             </div>
           </div>
         } />
