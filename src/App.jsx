@@ -9,6 +9,7 @@ import Html5QrcodeDemoPage from './pages/Html5QrcodeDemoPage';
 import Quagga2Page from './pages/Quagga2Page';
 import BarcodeDetectorPage from './pages/BarcodeDetectorPage';
 import ReactQrScannerPage from './pages/ReactQrScannerPage';
+import CameraDetectionPage from './pages/CameraDetectionPage';
 
 const cardStyle = {
   border: '1px solid #ddd',
@@ -74,6 +75,7 @@ function App() {
           }}
         >
           <option value="/">Select Scanner...</option>
+          <option value="/camera-detection">🔍 Camera Detection</option>
           <option value="/quagga2">Quagga2 (New)</option>
           <option value="/barcode-detector">Polyfill (New)</option>
           <option value="/react-qr-scanner">React QR Scanner</option>
@@ -99,6 +101,14 @@ function App() {
               maxWidth: '800px',
               margin: '0 auto'
             }}>
+              <Link to="/camera-detection" style={{ textDecoration: 'none' }}>
+                <div style={cardStyle}>
+                  <span style={{ fontSize: '2rem' }}>🔍</span>
+                  <h3>Camera Detection</h3>
+                  <p style={{ fontSize: '0.8rem', color: '#666' }}>Test Camera</p>
+                </div>
+              </Link>
+
               <Link to="/quagga2" style={{ textDecoration: 'none' }}>
                 <div style={cardStyle}>
                   <span style={{ fontSize: '2rem' }}>📷</span>
@@ -184,6 +194,7 @@ function App() {
         <Route path="/quagga2" element={<Quagga2Page />} />
         <Route path="/barcode-detector" element={<BarcodeDetectorPage />} />
         <Route path="/react-qr-scanner" element={<ReactQrScannerPage />} />
+        <Route path="/camera-detection" element={<CameraDetectionPage />} />
       </Routes>
     </div>
   );
