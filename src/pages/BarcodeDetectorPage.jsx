@@ -13,6 +13,12 @@ const BarcodeDetectorPage = () => {
     const [error, setError] = useState('');
     const [logs, setLogs] = useState([]);
 
+    // Options
+    const [resolution, setResolution] = useState('FHD');
+    const [focusMode, setFocusMode] = useState('continuous');
+    const [scanInterval, setScanInterval] = useState(100);
+    const [enableCache, setEnableCache] = useState(true);
+
     const log = (msg) => {
         setLogs(prev => [`${new Date().toLocaleTimeString()}: ${msg}`, ...prev]);
         console.log(msg);
@@ -39,65 +45,71 @@ const BarcodeDetectorPage = () => {
     }, []);
 
     useEffect(() => {
-        let intervalId;
+        let lastTime = 0;
+        let animationFrameId;
 
         const startDetection = async () => {
             if (!isScanning || !videoRef.current || !canvasRef.current) return;
 
             try {
-                // Initialize BarcodeDetector
-                // Using specific formats or all supported
-                const formats = await BarcodeDetector.getSupportedFormats();
-                log(`Supported formats: ${formats.join(', ')}`);
+                log(`Initializing Detector (Cache: ${enableCache})...`);
 
                 const detector = new BarcodeDetector({
-                    formats: ['code_128', 'qr_code', 'ean_13', 'code_39'] // Prioritize Code 128
+                    formats: ['code_128'], // Hardcoded to Code 128
+                    zbar: {
+                        enableCache: enableCache
+                    }
                 });
 
-                const detectLoop = async () => {
+                const detectLoop = async (timestamp) => {
                     if (!isScanning) return;
 
-                    try {
-                        if (videoRef.current && videoRef.current.readyState === 4) {
-                            const barcodes = await detector.detect(videoRef.current);
+                    // Interval Check
+                    if (timestamp - lastTime >= scanInterval) {
+                        lastTime = timestamp;
 
-                            // Draw frame
-                            const ctx = canvasRef.current.getContext('2d');
-                            canvasRef.current.width = videoRef.current.videoWidth;
-                            canvasRef.current.height = videoRef.current.videoHeight;
-                            ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+                        try {
+                            if (videoRef.current && videoRef.current.readyState === 4) {
+                                const barcodes = await detector.detect(videoRef.current);
 
-                            if (barcodes.length > 0) {
-                                const code = barcodes[0].rawValue;
-                                if (lastResult !== code) {
-                                    setLastResult(code);
-                                    log(`Found: ${code}`);
-                                    if (navigator.vibrate) navigator.vibrate(200);
+                                // Draw frame
+                                const ctx = canvasRef.current.getContext('2d');
+                                canvasRef.current.width = videoRef.current.videoWidth;
+                                canvasRef.current.height = videoRef.current.videoHeight;
+                                ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+
+                                if (barcodes.length > 0) {
+                                    const code = barcodes[0].rawValue;
+                                    if (lastResult !== code) {
+                                        setLastResult(code);
+                                        log(`Found: ${code}`);
+                                        if (navigator.vibrate) navigator.vibrate(200);
+                                    }
+
+                                    // Draw bounding box
+                                    barcodes.forEach(barcode => {
+                                        ctx.strokeStyle = '#22c55e';
+                                        ctx.lineWidth = 4;
+                                        ctx.strokeRect(
+                                            barcode.boundingBox.x,
+                                            barcode.boundingBox.y,
+                                            barcode.boundingBox.width,
+                                            barcode.boundingBox.height
+                                        );
+                                    });
                                 }
-
-                                // Draw bounding box
-                                barcodes.forEach(barcode => {
-                                    ctx.strokeStyle = 'red';
-                                    ctx.lineWidth = 4;
-                                    ctx.strokeRect(
-                                        barcode.boundingBox.x,
-                                        barcode.boundingBox.y,
-                                        barcode.boundingBox.width,
-                                        barcode.boundingBox.height
-                                    );
-                                });
                             }
+                        } catch (e) {
+                            // log(`Detection error: ${e.message}`);
                         }
-                    } catch (e) {
-                        // log(`Detection error: ${e.message}`);
                     }
 
                     if (isScanning) {
-                        requestAnimationFrame(detectLoop);
+                        animationFrameId = requestAnimationFrame(detectLoop);
                     }
                 };
 
-                detectLoop();
+                animationFrameId = requestAnimationFrame(detectLoop);
 
             } catch (e) {
                 setError(`Detector init error: ${e.message}`);
@@ -110,24 +122,38 @@ const BarcodeDetectorPage = () => {
         }
 
         return () => {
-            // cleanup if needed
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
         };
 
-    }, [isScanning, lastResult]);
+    }, [isScanning, lastResult, enableCache, scanInterval]); // Re-run if cache/interval changes
 
     const startScanner = async () => {
         try {
             setError('');
             setIsScanning(true);
 
-            const constraints = {
+            let constraints = {
                 video: {
                     deviceId: selectedDevice ? { exact: selectedDevice } : undefined,
-                    facingMode: selectedDevice ? undefined : 'environment',
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
+                    facingMode: selectedDevice ? undefined : 'environment'
                 }
             };
+
+            // Apply Resolution
+            if (resolution === 'HD') {
+                constraints.video.width = { min: 720, ideal: 1280 };
+                constraints.video.height = { min: 480, ideal: 720 };
+            } else if (resolution === 'FHD') {
+                constraints.video.width = { min: 1080, ideal: 1920 };
+                constraints.video.height = { min: 720, ideal: 1080 };
+            }
+
+            // Apply Focus Mode
+            if (focusMode !== 'default') {
+                constraints.video.advanced = [{ focusMode: focusMode }];
+            }
+
+            log(`Starting camera (${resolution}, ${focusMode})...`);
 
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
             if (videoRef.current) {
@@ -206,6 +232,61 @@ const BarcodeDetectorPage = () => {
                     </select>
                 </div>
 
+                {/* Resolution */}
+                <div>
+                    <label>Resolution: </label>
+                    <select
+                        value={resolution}
+                        onChange={(e) => setResolution(e.target.value)}
+                        disabled={isScanning}
+                        style={{ width: '100%', padding: '8px' }}
+                    >
+                        <option value="SD">SD (Default)</option>
+                        <option value="HD">HD (720p)</option>
+                        <option value="FHD">Full HD (1080p)</option>
+                    </select>
+                </div>
+
+                {/* Focus Mode */}
+                <div>
+                    <label>Focus Mode: </label>
+                    <select
+                        value={focusMode}
+                        onChange={(e) => setFocusMode(e.target.value)}
+                        disabled={isScanning}
+                        style={{ width: '100%', padding: '8px' }}
+                    >
+                        <option value="default">Default</option>
+                        <option value="continuous">Continuous</option>
+                        <option value="single-shot">Single Shot</option>
+                        <option value="manual">Manual</option>
+                    </select>
+                </div>
+
+                {/* Scan Interval */}
+                <div>
+                    <label>Scan Interval: {scanInterval}ms</label>
+                    <input
+                        type="range" min="50" max="1000" step="50"
+                        value={scanInterval}
+                        onChange={(e) => setScanInterval(parseInt(e.target.value))}
+                        style={{ width: '100%' }}
+                    />
+                </div>
+
+                {/* Enable Cache */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                        type="checkbox"
+                        id="enableCache"
+                        checked={enableCache}
+                        onChange={(e) => setEnableCache(e.target.checked)}
+                        disabled={isScanning}
+                    />
+                    <label htmlFor="enableCache">Enable Cache (ZBar)</label>
+                </div>
+
+
                 {!isScanning ? (
                     <button
                         onClick={startScanner}
@@ -216,7 +297,8 @@ const BarcodeDetectorPage = () => {
                             border: 'none',
                             borderRadius: '8px',
                             fontWeight: 'bold',
-                            fontSize: '1rem'
+                            fontSize: '1rem',
+                            marginTop: '1rem'
                         }}
                     >
                         ▶ Start Polyfill
@@ -231,7 +313,8 @@ const BarcodeDetectorPage = () => {
                             border: 'none',
                             borderRadius: '8px',
                             fontWeight: 'bold',
-                            fontSize: '1rem'
+                            fontSize: '1rem',
+                            marginTop: '1rem'
                         }}
                     >
                         ⏹ Stop Polyfill
